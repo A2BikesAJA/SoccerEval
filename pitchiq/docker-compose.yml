@@ -1,0 +1,85 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pitchiq
+      POSTGRES_PASSWORD: pitchiq
+      POSTGRES_DB: pitchiq
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pitchiq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for Celery task queue)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      PITCHIQ_DATABASE_URL: postgresql://pitchiq:pitchiq@db:5432/pitchiq
+      PITCHIQ_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - ./models:/app/models
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker (video processing)
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      PITCHIQ_DATABASE_URL: postgresql://pitchiq:pitchiq@db:5432/pitchiq
+      PITCHIQ_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - ./models:/app/models
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.worker worker --loglevel=info --concurrency=2
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+
+volumes:
+  pgdata:
