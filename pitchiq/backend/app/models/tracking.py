@@ -16,7 +16,7 @@ class TrackingEvent(Base):
     timestamp_seconds = Column(Float, nullable=False)
     x_position = Column(Float, nullable=True)
     y_position = Column(Float, nullable=True)
-    metadata = Column(JSON, nullable=True)
+    event_data = Column("metadata", JSON, nullable=True)
     source_video_id = Column(Integer, ForeignKey("game_video_sources.id"), nullable=True)
 
     game = relationship("Game", back_populates="tracking_events")
