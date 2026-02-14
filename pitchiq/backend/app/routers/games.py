@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
 from pathlib import Path
 from datetime import date as date_type
-import shutil
 import uuid
 import json
 
@@ -85,13 +84,24 @@ async def upload_game(
     except ValueError:
         cam_enum = CameraSourceType.OTHER
 
-    # Generate unique filename and save
+    # Generate unique filename and stream to disk in 1 MB chunks
     file_id = uuid.uuid4().hex
     filename = f"{file_id}{ext}"
     upload_path = Path(settings.upload_dir) / filename
 
-    with open(upload_path, "wb") as buffer:
-        shutil.copyfileobj(video.file, buffer)
+    CHUNK_SIZE = 1024 * 1024  # 1 MB
+    bytes_written = 0
+    with open(upload_path, "wb") as f:
+        while chunk := await video.read(CHUNK_SIZE):
+            bytes_written += len(chunk)
+            if bytes_written > MAX_SIZE_BYTES:
+                f.close()
+                upload_path.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {settings.max_upload_size_mb} MB.",
+                )
+            f.write(chunk)
 
     # Create game record
     game = Game(
@@ -181,8 +191,19 @@ async def upload_secondary_video(
     filename = f"{file_id}_secondary{ext}"
     upload_path = Path(settings.upload_dir) / filename
 
-    with open(upload_path, "wb") as buffer:
-        shutil.copyfileobj(video.file, buffer)
+    CHUNK_SIZE = 1024 * 1024  # 1 MB
+    bytes_written = 0
+    with open(upload_path, "wb") as f:
+        while chunk := await video.read(CHUNK_SIZE):
+            bytes_written += len(chunk)
+            if bytes_written > MAX_SIZE_BYTES:
+                f.close()
+                upload_path.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {settings.max_upload_size_mb} MB.",
+                )
+            f.write(chunk)
 
     source = GameVideoSource(
         game_id=game_id,

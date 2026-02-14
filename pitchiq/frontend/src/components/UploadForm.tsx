@@ -9,7 +9,7 @@ interface RosterEntry {
 
 interface UploadFormProps {
   teams: { id: number; name: string }[];
-  onSubmit: (formData: FormData) => Promise<void>;
+  onSubmit: (formData: FormData, onProgress: (pct: number) => void) => Promise<void>;
 }
 
 const CAMERA_SOURCES = [
@@ -103,9 +103,10 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
     }
 
     try {
-      await onSubmit(formData);
+      await onSubmit(formData, (pct) => setUploadProgress(pct));
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 

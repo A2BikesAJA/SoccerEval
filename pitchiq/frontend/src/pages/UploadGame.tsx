@@ -16,29 +16,47 @@ export default function UploadGame() {
       .finally(() => setLoadingTeams(false));
   }, []);
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = async (formData: FormData, onProgress: (pct: number) => void) => {
     setError(null);
-    try {
-      const response = await fetch('/api/v1/games/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const text = await response.text();
-      if (!response.ok) {
-        let detail = 'Upload failed';
-        try {
-          const data = JSON.parse(text);
-          detail = data.detail || detail;
-        } catch {
-          detail = text || `Server error (${response.status})`;
+    return new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/v1/games/upload');
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
         }
-        throw new Error(detail);
-      }
-      const game = JSON.parse(text);
-      navigate(`/game/${game.id}`);
-    } catch (err: any) {
-      setError(err.message || 'Upload failed. Please try again.');
-    }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const game = JSON.parse(xhr.responseText);
+            navigate(`/game/${game.id}`);
+          } catch {
+            setError('Upload succeeded but response was invalid.');
+          }
+          resolve();
+        } else {
+          let detail = 'Upload failed';
+          try {
+            const data = JSON.parse(xhr.responseText);
+            detail = data.detail || detail;
+          } catch {
+            detail = xhr.responseText || `Server error (${xhr.status})`;
+          }
+          setError(detail);
+          reject(new Error(detail));
+        }
+      };
+
+      xhr.onerror = () => {
+        setError('Network error. Please check your connection and try again.');
+        reject(new Error('Network error'));
+      };
+
+      xhr.send(formData);
+    });
   };
 
   return (
