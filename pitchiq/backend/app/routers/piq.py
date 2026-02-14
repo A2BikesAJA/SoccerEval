@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """PIQ Rating API routes — persistent player ratings and scouting."""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
@@ -42,11 +44,11 @@ def get_player_piq_history(player_id: int, db: Session = Depends(get_db)):
 
 @router.get("/scouting")
 def scouting_search(
-    age_group: str | None = None,
-    position: str | None = None,
+    age_group: Optional[str] = None,
+    position: Optional[str] = None,
     min_ovr: int = Query(default=1, ge=1, le=99),
     max_ovr: int = Query(default=99, ge=1, le=99),
-    competition_tier: int | None = Query(default=None, ge=1, le=8),
+    competition_tier: Optional[int] = Query(default=None, ge=1, le=8),
     sort_by: str = "ovr",
     limit: int = Query(default=50, le=200),
     db: Session = Depends(get_db),

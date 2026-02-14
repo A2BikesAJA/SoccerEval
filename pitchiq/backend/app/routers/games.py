@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Game API routes — upload, management, and video processing."""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
 from pathlib import Path
@@ -26,7 +28,7 @@ MAX_SIZE_BYTES = settings.max_upload_size_mb * 1024 * 1024
 
 
 @router.get("/", response_model=list[GameResponse])
-def list_games(team_id: int | None = None, db: Session = Depends(get_db)):
+def list_games(team_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Game).order_by(Game.game_date.desc())
     if team_id:
         query = query.filter(Game.team_id == team_id)

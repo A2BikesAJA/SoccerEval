@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Player API routes."""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import csv
@@ -15,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[PlayerResponse])
-def list_players(team_id: int | None = None, db: Session = Depends(get_db)):
+def list_players(team_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Player)
     if team_id:
         query = query.filter(Player.team_id == team_id)

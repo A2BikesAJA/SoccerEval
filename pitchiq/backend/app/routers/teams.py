@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Team API routes."""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -13,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[TeamResponse])
-def list_teams(club_id: int | None = None, db: Session = Depends(get_db)):
+def list_teams(club_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Team)
     if club_id:
         query = query.filter(Team.club_id == club_id)

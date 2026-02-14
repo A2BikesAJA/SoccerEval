@@ -16,7 +16,7 @@ redis==5.0.1
 ultralytics==8.1.9
 opencv-python-headless==4.9.0.80
 paddleocr==2.7.3
-paddlepaddle==2.6.0
+paddlepaddle>=2.6.0
 
 # Tracking
 numpy==1.26.4
