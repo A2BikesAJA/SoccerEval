@@ -26,7 +26,12 @@ export default function Settings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: clubName }),
       });
-      if (!clubRes.ok) throw new Error('Failed to create club');
+      if (!clubRes.ok) {
+        const text = await clubRes.text();
+        let detail = `Failed to create club (${clubRes.status})`;
+        try { detail = JSON.parse(text).detail || detail; } catch {}
+        throw new Error(detail);
+      }
       const club = await clubRes.json();
 
       // Create team under club
@@ -41,12 +46,17 @@ export default function Settings() {
           league_name: leagueName || null,
         }),
       });
-      if (!teamRes.ok) throw new Error('Failed to create team');
+      if (!teamRes.ok) {
+        const text = await teamRes.text();
+        let detail = `Failed to create team (${teamRes.status})`;
+        try { detail = JSON.parse(text).detail || detail; } catch {}
+        throw new Error(detail);
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      setSaveError(err.message || 'Save failed');
+      setSaveError(err.message || 'Save failed. Make sure the backend is running.');
     }
   };
 
