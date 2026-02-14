@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
 
     # Database
-    database_url: str = "postgresql://pitchiq:pitchiq@localhost:5432/pitchiq"
+    database_url: str = "sqlite:///./data/pitchiq.db"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
