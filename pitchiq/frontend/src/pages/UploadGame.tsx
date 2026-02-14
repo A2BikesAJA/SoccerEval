@@ -19,11 +19,18 @@ export default function UploadGame() {
         method: 'POST',
         body: formData,
       });
+      const text = await response.text();
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || 'Upload failed');
+        let detail = 'Upload failed';
+        try {
+          const data = JSON.parse(text);
+          detail = data.detail || detail;
+        } catch {
+          detail = text || `Server error (${response.status})`;
+        }
+        throw new Error(detail);
       }
-      const game = await response.json();
+      const game = JSON.parse(text);
       navigate(`/game/${game.id}`);
     } catch (err: any) {
       setError(err.message || 'Upload failed. Please try again.');

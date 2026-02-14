@@ -14,6 +14,7 @@ from app.models.base import get_db
 from app.models.game import Game, GameVideoSource, GameStatus, CameraSourceType
 from app.models.game_player import GamePlayer
 from app.models.player import Player
+from app.models.team import Team
 from app.models.processing import ProcessingJob
 from app.schemas.game import GameCreate, GameResponse, GameDetailResponse
 from app.config import settings
@@ -63,6 +64,11 @@ async def upload_game(
     db: Session = Depends(get_db),
 ):
     """Upload a game video with metadata."""
+    # Validate team exists
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=400, detail=f"Team with id {team_id} not found")
+
     # Validate file extension
     ext = Path(video.filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -70,6 +76,12 @@ async def upload_game(
             status_code=400,
             detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
         )
+
+    # Resolve camera source enum (fall back to OTHER)
+    try:
+        cam_enum = CameraSourceType(camera_source_type)
+    except ValueError:
+        cam_enum = CameraSourceType.OTHER
 
     # Generate unique filename and save
     file_id = uuid.uuid4().hex
@@ -95,7 +107,7 @@ async def upload_game(
     # Create video source record
     source = GameVideoSource(
         game_id=game.id,
-        source_type=camera_source_type,
+        source_type=cam_enum,
         video_path=str(upload_path),
         is_primary=True,
     )
