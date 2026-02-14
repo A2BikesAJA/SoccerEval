@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Game and GameVideoSource models."""
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, Boolean, Float, Enum as SQLEnum

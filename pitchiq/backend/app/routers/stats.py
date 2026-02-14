@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Stats API routes — player and team statistics."""
 
 from fastapi import APIRouter, Depends, HTTPException

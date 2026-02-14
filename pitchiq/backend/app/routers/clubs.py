@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Club API routes."""
 
 from fastapi import APIRouter, Depends, HTTPException

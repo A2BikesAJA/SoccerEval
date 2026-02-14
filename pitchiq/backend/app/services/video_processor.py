@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Video preprocessing and transcoding service."""
 
 import subprocess

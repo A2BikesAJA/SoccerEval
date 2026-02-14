@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from app.schemas.club import ClubCreate, ClubResponse
 from app.schemas.team import TeamCreate, TeamResponse
 from app.schemas.player import PlayerCreate, PlayerResponse, RosterEntry

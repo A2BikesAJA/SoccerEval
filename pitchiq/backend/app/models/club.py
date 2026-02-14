@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Club model."""
 
 from sqlalchemy import Column, Integer, String

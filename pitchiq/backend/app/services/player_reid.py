@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player re-identification service.
 
 Extracts appearance embeddings from player crops and matches them against

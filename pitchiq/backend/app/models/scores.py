@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player Score and PIQ Rating models."""
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, Date, Enum as SQLEnum, JSON

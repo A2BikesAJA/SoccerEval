@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Jersey number OCR service.
 
 Reads jersey numbers from player bounding boxes using optical character

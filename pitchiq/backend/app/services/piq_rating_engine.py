@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PIQ Rating Engine -- computes the persistent 1-99 OVR rating.
 
 The PIQ Rating is built from 29 sub-attributes grouped under 6 face-card

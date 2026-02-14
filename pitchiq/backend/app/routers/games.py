@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Game API routes — upload, management, and video processing."""
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form

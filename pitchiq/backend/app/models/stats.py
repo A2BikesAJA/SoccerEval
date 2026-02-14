@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player and Team game statistics models."""
 
 from sqlalchemy import Column, Integer, Float, Boolean, String, ForeignKey

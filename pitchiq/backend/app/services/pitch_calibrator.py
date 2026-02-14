@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Pitch calibration service.
 
 Detects field lines in video frames, computes a homography mapping from

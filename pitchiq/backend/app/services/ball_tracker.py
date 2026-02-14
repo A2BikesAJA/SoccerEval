@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Ball tracking and possession attribution service.
 
 Provides smooth ball trajectory estimation across frames, possession

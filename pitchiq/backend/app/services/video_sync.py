@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Multi-source video temporal alignment service."""
 
 import numpy as np

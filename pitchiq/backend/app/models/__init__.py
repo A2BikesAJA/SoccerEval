@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from app.models.base import Base
 from app.models.club import Club
 from app.models.team import Team

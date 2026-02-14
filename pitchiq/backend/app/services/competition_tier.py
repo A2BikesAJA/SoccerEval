@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Competition tier and level multiplier service for PitchIQ.
 
 Defines the 8-tier US youth soccer competition hierarchy and provides

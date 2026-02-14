@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Processing job schemas."""
 
 from pydantic import BaseModel

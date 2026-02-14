@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Application configuration."""
 
 from pydantic_settings import BaseSettings

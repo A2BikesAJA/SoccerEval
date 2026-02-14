@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tracking event model."""
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, JSON

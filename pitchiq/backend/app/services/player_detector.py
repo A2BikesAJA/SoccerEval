@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player detection service using YOLOv8.
 
 Detects players, referees, balls, and goalposts in video frames, then

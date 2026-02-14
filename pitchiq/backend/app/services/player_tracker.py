@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Multi-object player tracking service using ByteTrack-style assignment.
 
 Maintains persistent identities across frames using Kalman filter prediction,

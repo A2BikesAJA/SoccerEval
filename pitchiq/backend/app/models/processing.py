@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Processing job model."""
 
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime

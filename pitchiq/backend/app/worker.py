@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Celery worker for async video processing tasks."""
 
 from celery import Celery

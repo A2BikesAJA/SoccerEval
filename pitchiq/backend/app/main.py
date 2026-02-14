@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PitchIQ — Youth Soccer Analytics Platform API."""
 
 from fastapi import FastAPI

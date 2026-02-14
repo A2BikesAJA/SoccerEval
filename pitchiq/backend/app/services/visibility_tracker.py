@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player visibility and screen time tracking service.
 
 Tracks which players are visible in each frame, computes screen time

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PIQ Rating API routes — persistent player ratings and scouting."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query

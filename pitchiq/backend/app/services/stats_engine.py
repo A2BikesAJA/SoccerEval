@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Statistics computation engine for PitchIQ.
 
 Computes all player and team statistics from tracking data, categorizes

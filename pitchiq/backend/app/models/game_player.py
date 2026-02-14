@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """GamePlayer join model — players in a specific game."""
 
 from sqlalchemy import Column, Integer, Float, Boolean, String, ForeignKey

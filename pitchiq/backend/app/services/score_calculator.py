@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Player Score (0-10) calculator for PitchIQ.
 
 Computes a single-game performance score on a 0-10 scale by:

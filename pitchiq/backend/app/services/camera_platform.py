@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Camera platform-specific configuration and handling.
 
 Provides per-platform processing parameters, field coverage estimation,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Club schemas."""
 
 from pydantic import BaseModel

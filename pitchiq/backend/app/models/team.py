@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Team model."""
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum

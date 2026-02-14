@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Team schemas."""
 
 from pydantic import BaseModel, Field
