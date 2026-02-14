@@ -30,6 +30,7 @@ data/frames/*
 !data/uploads/.gitkeep
 !data/processed/.gitkeep
 !data/frames/.gitkeep
+backend/data/
 
 # Models
 models/*.pt
