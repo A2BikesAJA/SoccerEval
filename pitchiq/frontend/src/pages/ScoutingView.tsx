@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '../lib/utils';
 import PIQCard from '../components/PIQCard';
 import PlayerComparison from '../components/PlayerComparison';
 
-// Demo scouting data
-const DEMO_SCOUTING_PLAYERS = [
-  { id: 1, name: 'Marcus Johnson', position: 'CAM', ageGroup: 'U14', team: 'FC Warriors', tier: 'ECNL', tierNum: 1, ovr: 72, spd: 68, sht: 74, pas: 76, drb: 71, def: 42, phy: 63, games: 8, confidence: 'developing' as const },
-  { id: 2, name: 'Ethan Williams', position: 'ST', ageGroup: 'U14', team: 'Storm SC', tier: 'MLS NEXT', tierNum: 1, ovr: 78, spd: 82, sht: 80, pas: 65, drb: 75, def: 35, phy: 72, games: 12, confidence: 'established' as const },
-  { id: 3, name: 'Jayden Lopez', position: 'CM', ageGroup: 'U14', team: 'United FC', tier: 'ECRL', tierNum: 3, ovr: 68, spd: 64, sht: 55, pas: 78, drb: 70, def: 68, phy: 65, games: 6, confidence: 'developing' as const },
-  { id: 4, name: 'Noah Chen', position: 'CB', ageGroup: 'U14', team: 'Galaxy Academy', tier: 'State Premier', tierNum: 5, ovr: 62, spd: 55, sht: 30, pas: 65, drb: 48, def: 78, phy: 72, games: 10, confidence: 'established' as const },
-  { id: 5, name: 'Liam Anderson', position: 'LW', ageGroup: 'U14', team: 'Lightning FC', tier: 'ECNL', tierNum: 1, ovr: 70, spd: 80, sht: 68, pas: 62, drb: 78, def: 38, phy: 58, games: 7, confidence: 'developing' as const },
-  { id: 6, name: 'Aiden Patel', position: 'GK', ageGroup: 'U14', team: 'FC Warriors', tier: 'ECNL', tierNum: 1, ovr: 66, spd: 48, sht: 25, pas: 62, drb: 40, def: 70, phy: 68, games: 8, confidence: 'developing' as const },
-];
+interface ScoutingPlayer {
+  id: number;
+  name: string;
+  position: string;
+  ageGroup: string;
+  team: string;
+  tier: string;
+  tierNum: number;
+  ovr: number;
+  spd: number;
+  sht: number;
+  pas: number;
+  drb: number;
+  def: number;
+  phy: number;
+  games: number;
+  confidence: 'developing' | 'established' | 'new';
+}
 
 export default function ScoutingView() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,8 +30,18 @@ export default function ScoutingView() {
   const [sortBy, setSortBy] = useState('ovr');
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [players, setPlayers] = useState<ScoutingPlayer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = DEMO_SCOUTING_PLAYERS
+  useEffect(() => {
+    fetch('/api/v1/piq/scouting')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setPlayers(Array.isArray(data) ? data : []))
+      .catch(() => setPlayers([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = players
     .filter((p) => {
       if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (filterPosition && p.position !== filterPosition) return false;
@@ -44,14 +63,18 @@ export default function ScoutingView() {
   };
 
   const comparisonPlayers = compareIds.map((id) => {
-    const p = DEMO_SCOUTING_PLAYERS.find((x) => x.id === id)!;
+    const p = players.find((x) => x.id === id)!;
     return {
       playerName: p.name, clubName: p.team, position: p.position,
       ageGroup: p.ageGroup, competitionTier: p.tier,
       ovr: p.ovr, spd: p.spd, sht: p.sht, pas: p.pas, drb: p.drb, def: p.def, phy: p.phy,
       confidenceLevel: p.confidence, gamesAnalyzed: p.games,
     };
-  });
+  }).filter(Boolean);
+
+  if (loading) {
+    return <div className="text-center py-16 text-slate-500">Loading scouting data...</div>;
+  }
 
   return (
     <div>
@@ -166,9 +189,15 @@ export default function ScoutingView() {
             ))}
           </div>
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && players.length > 0 && (
             <div className="text-center py-12 text-slate-500">
               No players match your filters.
+            </div>
+          )}
+
+          {players.length === 0 && (
+            <div className="text-center py-12 text-slate-500">
+              No players with PIQ ratings yet. Upload and process game footage to build the scouting database.
             </div>
           )}
         </>

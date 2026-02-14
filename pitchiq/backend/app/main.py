@@ -8,31 +8,11 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.config import settings
-from app.models.base import Base, engine, SessionLocal
-from app.models.club import Club
-from app.models.team import Team, AgeGroup
+from app.models.base import Base, engine
 from app.routers import clubs, teams, players, games, stats, piq, processing
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
-
-# Seed demo data if empty
-def _seed_demo_data():
-    db = SessionLocal()
-    try:
-        if db.query(Club).count() == 0:
-            club = Club(id=1, name="FC Warriors", logo_url=None)
-            db.add(club)
-            db.flush()
-            db.add(Team(id=1, club_id=1, name="FC Warriors U14 Boys", age_group=AgeGroup.U14, competition_tier=6))
-            db.add(Team(id=2, club_id=1, name="FC Warriors U12 Girls", age_group=AgeGroup.U12, competition_tier=6))
-            db.commit()
-    except Exception:
-        db.rollback()
-    finally:
-        db.close()
-
-_seed_demo_data()
 
 app = FastAPI(
     title=settings.app_name,

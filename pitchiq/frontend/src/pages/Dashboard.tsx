@@ -11,12 +11,6 @@ interface GameSummary {
   score_away?: number;
 }
 
-// Demo data for initial display
-const DEMO_GAMES: GameSummary[] = [
-  { id: 1, opponent_name: 'FC Lightning', game_date: '2025-11-15', status: 'completed', score_home: 3, score_away: 1 },
-  { id: 2, opponent_name: 'Storm SC', game_date: '2025-11-08', status: 'completed', score_home: 2, score_away: 2 },
-  { id: 3, opponent_name: 'United FC', game_date: '2025-11-01', status: 'processing' },
-];
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -33,7 +27,18 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Dashboard() {
-  const [games, setGames] = useState<GameSummary[]>(DEMO_GAMES);
+  const [games, setGames] = useState<GameSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/v1/games/')
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setGames(data))
+      .catch(() => setGames([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const completed = games.filter((g) => g.status === 'completed');
 
   return (
     <div>
@@ -54,10 +59,10 @@ export default function Dashboard() {
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Games Analyzed', value: '2', icon: '◎' },
-          { label: 'Players Tracked', value: '22', icon: '⊕' },
-          { label: 'Avg Team Score', value: '6.8', icon: '★' },
-          { label: 'Season Record', value: '1W 1D 0L', icon: '⊞' },
+          { label: 'Games Analyzed', value: String(completed.length), icon: '◎' },
+          { label: 'Total Games', value: String(games.length), icon: '⊕' },
+          { label: 'Completed', value: String(completed.length), icon: '★' },
+          { label: 'Pending', value: String(games.length - completed.length), icon: '⊞' },
         ].map((stat) => (
           <div key={stat.label} className="bg-slate-800/50 rounded-xl border border-white/10 p-4">
             <div className="flex items-center justify-between">
@@ -70,37 +75,39 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Games */}
-      <div className="bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/10">
-          <h2 className="text-sm font-medium text-white">Recent Games</h2>
+      {games.length > 0 && (
+        <div className="bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden">
+          <div className="px-5 py-3 border-b border-white/10">
+            <h2 className="text-sm font-medium text-white">Recent Games</h2>
+          </div>
+          <div className="divide-y divide-white/5">
+            {games.map((game) => (
+              <Link
+                key={game.id}
+                to={`/game/${game.id}`}
+                className="flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="text-sm font-medium text-white">vs {game.opponent_name}</div>
+                  <StatusBadge status={game.status} />
+                </div>
+                <div className="flex items-center gap-4">
+                  {game.score_home != null && (
+                    <span className="text-sm font-bold text-white">
+                      {game.score_home} - {game.score_away}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500">{game.game_date}</span>
+                  <span className="text-slate-500">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="divide-y divide-white/5">
-          {games.map((game) => (
-            <Link
-              key={game.id}
-              to={`/game/${game.id}`}
-              className="flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-sm font-medium text-white">vs {game.opponent_name}</div>
-                <StatusBadge status={game.status} />
-              </div>
-              <div className="flex items-center gap-4">
-                {game.score_home !== undefined && (
-                  <span className="text-sm font-bold text-white">
-                    {game.score_home} - {game.score_away}
-                  </span>
-                )}
-                <span className="text-xs text-slate-500">{game.game_date}</span>
-                <span className="text-slate-500">→</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Empty State */}
-      {games.length === 0 && (
+      {!loading && games.length === 0 && (
         <div className="text-center py-16">
           <div className="text-4xl mb-4">⊞</div>
           <h2 className="text-lg font-medium text-white mb-2">No games yet</h2>

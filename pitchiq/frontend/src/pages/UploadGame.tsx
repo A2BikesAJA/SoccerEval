@@ -1,16 +1,20 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import UploadForm from '../components/UploadForm';
-
-// Demo teams
-const DEMO_TEAMS = [
-  { id: 1, name: 'FC Warriors U14 Boys' },
-  { id: 2, name: 'FC Warriors U12 Girls' },
-];
 
 export default function UploadGame() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [teams, setTeams] = useState<{ id: number; name: string }[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/v1/teams/')
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setTeams(data))
+      .catch(() => setTeams([]))
+      .finally(() => setLoadingTeams(false));
+  }, []);
 
   const handleSubmit = async (formData: FormData) => {
     setError(null);
@@ -63,7 +67,18 @@ export default function UploadGame() {
         </div>
       )}
 
-      <UploadForm teams={DEMO_TEAMS} onSubmit={handleSubmit} />
+      {loadingTeams ? (
+        <div className="text-center py-12 text-slate-500">Loading teams...</div>
+      ) : teams.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-slate-400 mb-4">No teams found. Create a team in Settings first.</p>
+          <Link to="/settings" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium text-white">
+            Go to Settings
+          </Link>
+        </div>
+      ) : (
+        <UploadForm teams={teams} onSubmit={handleSubmit} />
+      )}
     </div>
   );
 }

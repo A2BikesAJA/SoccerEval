@@ -2,19 +2,52 @@ import { useState } from 'react';
 import CompetitionTierSelector from '../components/CompetitionTierSelector';
 
 export default function Settings() {
-  const [clubName, setClubName] = useState('FC Warriors');
-  const [teamName, setTeamName] = useState('U14 Boys');
-  const [tier, setTier] = useState(1);
-  const [ageGroup, setAgeGroup] = useState('U14');
-  const [leagueName, setLeagueName] = useState('ECNL');
+  const [clubName, setClubName] = useState('');
+  const [teamName, setTeamName] = useState('');
+  const [tier, setTier] = useState(6);
+  const [ageGroup, setAgeGroup] = useState('U12');
+  const [leagueName, setLeagueName] = useState('');
   const [defaultCamera, setDefaultCamera] = useState('veo_followcam');
   const [piqMinGames, setPiqMinGames] = useState(3);
   const [detectionFps, setDetectionFps] = useState(2.0);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    setSaveError(null);
+    if (!clubName.trim() || !teamName.trim()) {
+      setSaveError('Club name and team name are required.');
+      return;
+    }
+    try {
+      // Create club
+      const clubRes = await fetch('/api/v1/clubs/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: clubName }),
+      });
+      if (!clubRes.ok) throw new Error('Failed to create club');
+      const club = await clubRes.json();
+
+      // Create team under club
+      const teamRes = await fetch('/api/v1/teams/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          club_id: club.id,
+          name: `${clubName} ${teamName}`,
+          age_group: ageGroup,
+          competition_tier: tier,
+          league_name: leagueName || null,
+        }),
+      });
+      if (!teamRes.ok) throw new Error('Failed to create team');
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setSaveError(err.message || 'Save failed');
+    }
   };
 
   return (
@@ -155,11 +188,16 @@ export default function Settings() {
         </section>
 
         {/* Save */}
+        {saveError && (
+          <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+            <p className="text-sm text-red-400">{saveError}</p>
+          </div>
+        )}
         <button
           onClick={handleSave}
           className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-semibold text-white transition-colors"
         >
-          {saved ? 'Saved!' : 'Save Settings'}
+          {saved ? 'Club & Team Created!' : 'Save & Create Team'}
         </button>
       </div>
     </div>
