@@ -5,15 +5,10 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
+# Install Python dependencies (core only — ML deps in requirements-ml.txt)
+COPY requirements.txt requirements-ml.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application

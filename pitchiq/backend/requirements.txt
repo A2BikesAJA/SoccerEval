@@ -5,23 +5,16 @@ python-multipart==0.0.9
 
 # Database
 sqlalchemy==2.0.27
-psycopg2-binary==2.9.9
 alembic==1.13.1
+aiosqlite==0.20.0
 
 # Task Queue
 celery[redis]==5.3.6
 redis==5.0.1
 
-# Computer Vision
-ultralytics==8.1.9
-opencv-python-headless==4.9.0.80
-paddleocr==2.7.3
-paddlepaddle>=2.6.0
-
 # Tracking
 numpy==1.26.4
 scipy==1.12.0
-lap==0.4.0
 
 # Video Processing
 ffmpeg-python==0.2.0

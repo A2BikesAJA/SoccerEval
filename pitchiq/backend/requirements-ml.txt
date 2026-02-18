@@ -1,0 +1,16 @@
+# ML/CV dependencies for video processing pipeline
+# Install with: pip install -r requirements-ml.txt
+
+-r requirements.txt
+
+# Computer Vision
+ultralytics==8.1.9
+opencv-python-headless==4.9.0.80
+paddleocr==2.7.3
+paddlepaddle>=2.6.0
+
+# Tracking (ByteTrack)
+lap==0.4.0
+
+# PostgreSQL driver (for production)
+psycopg2-binary==2.9.9
