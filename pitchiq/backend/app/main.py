@@ -2,14 +2,21 @@ from __future__ import annotations
 
 """PitchIQ — Youth Soccer Analytics Platform API."""
 
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import ResponseValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.config import settings
 from app.models.base import Base, engine
 from app.routers import clubs, teams, players, games, stats, piq, processing
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -45,6 +52,12 @@ app.include_router(games.router, prefix=f"{prefix}/games", tags=["games"])
 app.include_router(stats.router, prefix=f"{prefix}/stats", tags=["stats"])
 app.include_router(piq.router, prefix=f"{prefix}/piq", tags=["piq"])
 app.include_router(processing.router, prefix=f"{prefix}/processing", tags=["processing"])
+
+
+@app.exception_handler(ResponseValidationError)
+async def response_validation_handler(request: Request, exc: ResponseValidationError):
+    logger.error("Response validation error on %s: %s", request.url, exc.errors())
+    return JSONResponse(status_code=500, content={"detail": str(exc.errors())})
 
 
 @app.get("/")
