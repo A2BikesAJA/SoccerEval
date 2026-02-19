@@ -46,6 +46,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Celery Worker (video processing)
@@ -67,19 +73,21 @@ services:
         condition: service_healthy
     command: celery -A app.worker worker --loglevel=info --concurrency=2
 
-  # React Frontend
+  # React Frontend (Vite dev server proxies /api to backend)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      VITE_API_URL: http://localhost:8000/api/v1
+      API_TARGET: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts
 
 volumes:
   pgdata:
