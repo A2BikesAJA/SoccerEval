@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clubsApi, teamsApi } from '../lib/api';
 import CompetitionTierSelector from '../components/CompetitionTierSelector';
 
 export default function Settings() {
@@ -21,42 +22,23 @@ export default function Settings() {
     }
     try {
       // Create club
-      const clubRes = await fetch('/api/v1/clubs/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: clubName }),
-      });
-      if (!clubRes.ok) {
-        const text = await clubRes.text();
-        let detail = `Failed to create club (${clubRes.status})`;
-        try { detail = JSON.parse(text).detail || detail; } catch {}
-        throw new Error(detail);
-      }
-      const club = await clubRes.json();
+      const clubRes = await clubsApi.create({ name: clubName });
+      const club = clubRes.data;
 
       // Create team under club
-      const teamRes = await fetch('/api/v1/teams/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          club_id: club.id,
-          name: `${clubName} ${teamName}`,
-          age_group: ageGroup,
-          competition_tier: tier,
-          league_name: leagueName || null,
-        }),
+      await teamsApi.create({
+        club_id: club.id,
+        name: `${clubName} ${teamName}`,
+        age_group: ageGroup,
+        competition_tier: tier,
+        league_name: leagueName || null,
       });
-      if (!teamRes.ok) {
-        const text = await teamRes.text();
-        let detail = `Failed to create team (${teamRes.status})`;
-        try { detail = JSON.parse(text).detail || detail; } catch {}
-        throw new Error(detail);
-      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      setSaveError(err.message || 'Save failed. Make sure the backend is running.');
+      const detail = err.response?.data?.detail;
+      setSaveError(detail || err.message || 'Save failed. Make sure the backend is running.');
     }
   };
 
