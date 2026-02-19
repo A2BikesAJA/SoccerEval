@@ -19,11 +19,15 @@ def list_clubs(db: Session = Depends(get_db)):
 
 @router.post("/", response_model=ClubResponse, status_code=201)
 def create_club(club: ClubCreate, db: Session = Depends(get_db)):
-    db_club = Club(name=club.name, logo_url=club.logo_url)
-    db.add(db_club)
-    db.commit()
-    db.refresh(db_club)
-    return db_club
+    try:
+        db_club = Club(name=club.name, logo_url=club.logo_url)
+        db.add(db_club)
+        db.commit()
+        db.refresh(db_club)
+        return db_club
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/{club_id}", response_model=ClubResponse)

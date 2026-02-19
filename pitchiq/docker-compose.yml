@@ -80,6 +80,7 @@ services:
       - backend
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts
 
 volumes:
   pgdata:
