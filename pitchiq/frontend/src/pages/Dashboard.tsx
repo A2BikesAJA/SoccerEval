@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { gamesApi } from '../lib/api';
 import { cn } from '../lib/utils';
 
 interface GameSummary {
@@ -31,9 +32,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v1/games/')
-      .then((res) => res.ok ? res.json() : [])
-      .then((data) => setGames(data))
+    gamesApi.list()
+      .then((res) => setGames(res.data))
       .catch(() => setGames([]))
       .finally(() => setLoading(false));
   }, []);

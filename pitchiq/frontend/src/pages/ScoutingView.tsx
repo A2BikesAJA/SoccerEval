@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { piqApi } from '../lib/api';
 import { cn } from '../lib/utils';
 import PIQCard from '../components/PIQCard';
 import PlayerComparison from '../components/PlayerComparison';
@@ -34,9 +35,8 @@ export default function ScoutingView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v1/piq/scouting')
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setPlayers(Array.isArray(data) ? data : []))
+    piqApi.scouting({})
+      .then((res) => setPlayers(Array.isArray(res.data) ? res.data : []))
       .catch(() => setPlayers([]))
       .finally(() => setLoading(false));
   }, []);

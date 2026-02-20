@@ -39,11 +39,11 @@ export const playersApi = {
 export const gamesApi = {
   list: (teamId?: number) => api.get('/games/', { params: { team_id: teamId } }),
   get: (id: number) => api.get(`/games/${id}`),
-  upload: (formData: FormData) => api.post('/games/upload', formData, {
+  upload: (formData: FormData, onProgress?: (pct: number) => void) => api.post('/games/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (progressEvent) => {
       const pct = progressEvent.total ? Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
-      console.log(`Upload progress: ${pct}%`);
+      onProgress?.(pct);
     },
   }),
 };

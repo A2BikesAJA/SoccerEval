@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { playersApi, piqApi } from '../lib/api';
 import { cn } from '../lib/utils';
 import PIQCard from '../components/PIQCard';
 import PIQRadarChart from '../components/PIQRadarChart';
@@ -31,10 +32,11 @@ export default function PlayerReport() {
 
   useEffect(() => {
     if (!playerId) return;
+    const id = Number(playerId);
     Promise.all([
-      fetch(`/api/v1/players/${playerId}`).then((r) => r.ok ? r.json() : null).catch(() => null),
-      fetch(`/api/v1/piq/player/${playerId}`).then((r) => r.ok ? r.json() : null).catch(() => null),
-      fetch(`/api/v1/piq/player/${playerId}/history`).then((r) => r.ok ? r.json() : []).catch(() => []),
+      playersApi.get(id).then((r) => r.data).catch(() => null),
+      piqApi.getPlayerRating(id).then((r) => r.data).catch(() => null),
+      piqApi.getPlayerHistory(id).then((r) => r.data).catch(() => []),
     ])
       .then(([p, q, h]) => {
         setPlayer(p);

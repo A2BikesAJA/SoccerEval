@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { gamesApi, statsApi } from '../lib/api';
 import { cn } from '../lib/utils';
 import StatsTable from '../components/StatsTable';
 import TeamComparison from '../components/TeamComparison';
@@ -17,10 +18,11 @@ export default function GameAnalysis() {
 
   useEffect(() => {
     if (!gameId) return;
+    const id = Number(gameId);
     Promise.all([
-      fetch(`/api/v1/games/${gameId}`).then((r) => r.ok ? r.json() : null),
-      fetch(`/api/v1/stats/game/${gameId}/team`).then((r) => r.ok ? r.json() : []).catch(() => []),
-      fetch(`/api/v1/stats/game/${gameId}/players`).then((r) => r.ok ? r.json() : []).catch(() => []),
+      gamesApi.get(id).then((r) => r.data).catch(() => null),
+      statsApi.getTeamStats(id).then((r) => r.data).catch(() => []),
+      statsApi.getPlayerStats(id).then((r) => r.data).catch(() => []),
     ])
       .then(([g, ts, ps]) => {
         setGame(g);

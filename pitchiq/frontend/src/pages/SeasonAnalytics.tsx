@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { gamesApi } from '../lib/api';
 import { cn } from '../lib/utils';
 
 export default function SeasonAnalytics() {
@@ -6,9 +7,8 @@ export default function SeasonAnalytics() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v1/games/')
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setGames(Array.isArray(data) ? data : []))
+    gamesApi.list()
+      .then((res) => setGames(Array.isArray(res.data) ? res.data : []))
       .catch(() => setGames([]))
       .finally(() => setLoading(false));
   }, []);

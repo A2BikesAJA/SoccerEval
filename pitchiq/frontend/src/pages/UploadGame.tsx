@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { teamsApi, gamesApi } from '../lib/api';
 import UploadForm from '../components/UploadForm';
 
 export default function UploadGame() {
@@ -9,54 +10,22 @@ export default function UploadGame() {
   const [loadingTeams, setLoadingTeams] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v1/teams/')
-      .then((res) => res.ok ? res.json() : [])
-      .then((data) => setTeams(data))
+    teamsApi.list()
+      .then((res) => setTeams(res.data))
       .catch(() => setTeams([]))
       .finally(() => setLoadingTeams(false));
   }, []);
 
   const handleSubmit = async (formData: FormData, onProgress: (pct: number) => void) => {
     setError(null);
-    return new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/v1/games/upload');
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          onProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const game = JSON.parse(xhr.responseText);
-            navigate(`/game/${game.id}`);
-          } catch {
-            setError('Upload succeeded but response was invalid.');
-          }
-          resolve();
-        } else {
-          let detail = 'Upload failed';
-          try {
-            const data = JSON.parse(xhr.responseText);
-            detail = data.detail || detail;
-          } catch {
-            detail = xhr.responseText || `Server error (${xhr.status})`;
-          }
-          setError(detail);
-          reject(new Error(detail));
-        }
-      };
-
-      xhr.onerror = () => {
-        setError('Network error. Please check your connection and try again.');
-        reject(new Error('Network error'));
-      };
-
-      xhr.send(formData);
-    });
+    try {
+      const res = await gamesApi.upload(formData, onProgress);
+      navigate(`/game/${res.data.id}`);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Upload failed';
+      setError(detail);
+      throw err;
+    }
   };
 
   return (
