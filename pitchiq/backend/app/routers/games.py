@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
+import logging
 from pathlib import Path
 from datetime import date as date_type
 import uuid
@@ -21,6 +22,7 @@ from app.schemas.game import GameCreate, GameResponse, GameDetailResponse
 from app.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv"}
 MAX_SIZE_BYTES = settings.max_upload_size_mb * 1024 * 1024
@@ -36,20 +38,26 @@ def list_games(team_id: Optional[int] = None, db: Session = Depends(get_db)):
 
 @router.get("/{game_id}", response_model=GameDetailResponse)
 def get_game(game_id: int, db: Session = Depends(get_db)):
-    game = (
-        db.query(Game)
-        .options(
-            joinedload(Game.video_sources),
-            joinedload(Game.game_players).joinedload(GamePlayer.player),
-            joinedload(Game.game_players).joinedload(GamePlayer.score),
-            joinedload(Game.team_stats),
+    try:
+        game = (
+            db.query(Game)
+            .options(
+                joinedload(Game.video_sources),
+                joinedload(Game.game_players).joinedload(GamePlayer.player),
+                joinedload(Game.game_players).joinedload(GamePlayer.score),
+                joinedload(Game.team_stats),
+            )
+            .filter(Game.id == game_id)
+            .first()
         )
-        .filter(Game.id == game_id)
-        .first()
-    )
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    return game
+        if not game:
+            raise HTTPException(status_code=404, detail="Game not found")
+        return game
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error fetching game %s", game_id)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/upload", response_model=GameResponse, status_code=201)
