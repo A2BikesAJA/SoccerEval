@@ -73,13 +73,15 @@ services:
         condition: service_healthy
     command: celery -A app.worker worker --loglevel=info --concurrency=2
 
-  # React Frontend (Vite dev server proxies /api to backend)
+  # React Frontend
+  # VITE_API_URL tells the browser to call the backend directly via port
+  # mapping (localhost:8000), bypassing the Vite proxy entirely.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      API_TARGET: http://backend:8000
+      VITE_API_URL: http://localhost:8000/api/v1
     ports:
       - "3000:3000"
     depends_on:
@@ -87,7 +89,6 @@ services:
         condition: service_healthy
     volumes:
       - ./frontend/src:/app/src
-      - ./frontend/vite.config.ts:/app/vite.config.ts
 
 volumes:
   pgdata:

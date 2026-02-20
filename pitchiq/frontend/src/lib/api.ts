@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// In Docker: VITE_API_URL is set to http://localhost:8000/api/v1
+// (browser calls backend directly via port mapping, no proxy needed)
+// Local dev: falls back to /api/v1 (uses Vite proxy)
+const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
