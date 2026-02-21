@@ -51,7 +51,8 @@ def retry_processing(game_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_job)
 
-    # TODO: Trigger Celery task
-    # process_game_video.delay(game_id)
+    # Trigger Celery task
+    from app.worker import process_game_video
+    process_game_video.delay(game_id)
 
     return new_job

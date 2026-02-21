@@ -172,8 +172,9 @@ async def upload_game(
     db.commit()
     db.refresh(game)
 
-    # TODO: Trigger Celery task for video processing
-    # process_game_video.delay(game.id)
+    # Trigger Celery task for video processing
+    from app.worker import process_game_video
+    process_game_video.delay(game.id)
 
     return game
 
