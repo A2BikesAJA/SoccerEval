@@ -18,6 +18,10 @@ celery_app = Celery(
     backend=settings.redis_url,
 )
 
+# Alias so ``celery -A app.worker worker`` discovers the instance
+# (Celery looks for ``app`` or ``celery`` attributes by default).
+app = celery_app
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],

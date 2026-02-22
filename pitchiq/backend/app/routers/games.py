@@ -172,9 +172,15 @@ async def upload_game(
     db.commit()
     db.refresh(game)
 
-    # Trigger Celery task for video processing
-    from app.worker import process_game_video
-    process_game_video.delay(game.id)
+    # Trigger Celery task for video processing.
+    # Wrapped in try-except so the upload response succeeds even if the
+    # broker (Redis) is temporarily unreachable — the game is already
+    # persisted and can be retried via the /processing/game/{id}/retry endpoint.
+    try:
+        from app.worker import process_game_video
+        process_game_video.delay(game.id)
+    except Exception as exc:
+        logger.warning("Game %d: failed to enqueue processing task: %s", game.id, exc)
 
     return game
 

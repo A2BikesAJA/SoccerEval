@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.base import get_db
+from app.models.game import Game
 from app.models.processing import ProcessingJob
 from app.schemas.processing import ProcessingJobResponse
 
@@ -36,6 +37,10 @@ def get_job_status(job_id: int, db: Session = Depends(get_db)):
 @router.post("/game/{game_id}/retry", response_model=ProcessingJobResponse)
 def retry_processing(game_id: int, db: Session = Depends(get_db)):
     """Retry a failed processing job."""
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
     # Cancel any existing running jobs
     existing = (
         db.query(ProcessingJob)
