@@ -32,6 +32,8 @@ export const playersApi = {
   list: (teamId?: number) => api.get('/players/', { params: { team_id: teamId } }),
   create: (data: any) => api.post('/players/', data),
   get: (id: number) => api.get(`/players/${id}`),
+  update: (id: number, data: any) => api.put(`/players/${id}`, data),
+  delete: (id: number) => api.delete(`/players/${id}`),
   importRoster: (teamId: number, roster: any[]) => api.post(`/players/roster/${teamId}`, roster),
 };
 
@@ -40,7 +42,8 @@ export const gamesApi = {
   list: (teamId?: number) => api.get('/games/', { params: { team_id: teamId } }),
   get: (id: number) => api.get(`/games/${id}`),
   upload: (formData: FormData, onProgress?: (pct: number) => void) => api.post('/games/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    // Let axios auto-set Content-Type with the correct multipart boundary
+    headers: { 'Content-Type': undefined as unknown as string },
     onUploadProgress: (progressEvent) => {
       const pct = progressEvent.total ? Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
       onProgress?.(pct);

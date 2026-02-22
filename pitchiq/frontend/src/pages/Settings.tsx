@@ -1,8 +1,22 @@
-import { useState } from 'react';
-import { clubsApi, teamsApi } from '../lib/api';
+import { useState, useEffect } from 'react';
+import { clubsApi, teamsApi, playersApi } from '../lib/api';
 import CompetitionTierSelector from '../components/CompetitionTierSelector';
 
+interface PlayerEntry {
+  id: number | null;
+  jersey_number: number;
+  name: string;
+  position: string;
+}
+
+const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
+
 export default function Settings() {
+  // Existing entity IDs (null = not yet created)
+  const [clubId, setClubId] = useState<number | null>(null);
+  const [teamId, setTeamId] = useState<number | null>(null);
+
+  // Club / Team fields
   const [clubName, setClubName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [tier, setTier] = useState(6);
@@ -11,8 +25,63 @@ export default function Settings() {
   const [defaultCamera, setDefaultCamera] = useState('veo_followcam');
   const [piqMinGames, setPiqMinGames] = useState(3);
   const [detectionFps, setDetectionFps] = useState(2.0);
+
+  // Save state
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Players
+  const [players, setPlayers] = useState<PlayerEntry[]>([]);
+  const [playerSaving, setPlayerSaving] = useState(false);
+  const [playerSaved, setPlayerSaved] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
+
+  // Load existing club + team + players on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const clubsRes = await clubsApi.list();
+        const clubs = clubsRes.data;
+        if (clubs.length > 0) {
+          const club = clubs[0];
+          setClubId(club.id);
+          setClubName(club.name);
+
+          const teamsRes = await teamsApi.list(club.id);
+          const teams = teamsRes.data;
+          if (teams.length > 0) {
+            const team = teams[0];
+            setTeamId(team.id);
+            // Strip the club name prefix if present
+            const displayTeamName = team.name.startsWith(`${club.name} `)
+              ? team.name.slice(club.name.length + 1)
+              : team.name;
+            setTeamName(displayTeamName);
+            setAgeGroup(team.age_group || 'U12');
+            setTier(team.competition_tier ?? 6);
+            setLeagueName(team.league_name || '');
+
+            // Load players for this team
+            const playersRes = await playersApi.list(team.id);
+            setPlayers(
+              playersRes.data.map((p: any) => ({
+                id: p.id,
+                jersey_number: p.jersey_number ?? 0,
+                name: p.name,
+                position: p.position || '',
+              }))
+            );
+          }
+        }
+      } catch {
+        // Backend not running or no data yet
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleSave = async () => {
     setSaveError(null);
@@ -21,18 +90,34 @@ export default function Settings() {
       return;
     }
     try {
-      // Create club
-      const clubRes = await clubsApi.create({ name: clubName });
-      const club = clubRes.data;
+      let currentClubId = clubId;
+      let currentTeamId = teamId;
 
-      // Create team under club
-      await teamsApi.create({
-        club_id: club.id,
-        name: `${clubName} ${teamName}`,
-        age_group: ageGroup,
-        competition_tier: tier,
-        league_name: leagueName || null,
-      });
+      if (!currentClubId) {
+        const clubRes = await clubsApi.create({ name: clubName });
+        currentClubId = clubRes.data.id;
+        setClubId(currentClubId);
+      }
+
+      if (!currentTeamId) {
+        const teamRes = await teamsApi.create({
+          club_id: currentClubId,
+          name: `${clubName} ${teamName}`,
+          age_group: ageGroup,
+          competition_tier: tier,
+          league_name: leagueName || null,
+        });
+        currentTeamId = teamRes.data.id;
+        setTeamId(currentTeamId);
+      } else {
+        await teamsApi.update(currentTeamId, {
+          club_id: currentClubId,
+          name: `${clubName} ${teamName}`,
+          age_group: ageGroup,
+          competition_tier: tier,
+          league_name: leagueName || null,
+        });
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -42,11 +127,77 @@ export default function Settings() {
     }
   };
 
+  // Player management
+  const addPlayer = () => {
+    const nextNum = players.length > 0 ? Math.max(...players.map((p) => p.jersey_number)) + 1 : 1;
+    setPlayers([...players, { id: null, jersey_number: nextNum, name: '', position: '' }]);
+  };
+
+  const updatePlayer = (idx: number, field: keyof PlayerEntry, value: string | number) => {
+    const updated = [...players];
+    (updated[idx] as any)[field] = value;
+    setPlayers(updated);
+  };
+
+  const removePlayer = async (idx: number) => {
+    const player = players[idx];
+    if (player.id) {
+      try {
+        await playersApi.delete(player.id);
+      } catch {
+        // Player may already be deleted
+      }
+    }
+    setPlayers(players.filter((_, i) => i !== idx));
+  };
+
+  const saveRoster = async () => {
+    if (!teamId) {
+      setPlayerError('Save your club & team first before adding players.');
+      return;
+    }
+    setPlayerSaving(true);
+    setPlayerError(null);
+    try {
+      const roster = players
+        .filter((p) => p.name.trim())
+        .map((p) => ({
+          jersey_number: p.jersey_number,
+          name: p.name,
+          position: p.position || null,
+        }));
+      const res = await playersApi.importRoster(teamId, roster);
+      setPlayers(
+        res.data.map((p: any) => ({
+          id: p.id,
+          jersey_number: p.jersey_number ?? 0,
+          name: p.name,
+          position: p.position || '',
+        }))
+      );
+      setPlayerSaved(true);
+      setTimeout(() => setPlayerSaved(false), 3000);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      setPlayerError(detail || err.message || 'Failed to save roster.');
+    } finally {
+      setPlayerSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl">
+        <div className="text-center py-12 text-slate-500">Loading settings...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-slate-400 mt-1">Manage your club, team, and processing preferences</p>
+        <p className="text-sm text-slate-400 mt-1">Manage your club, team, roster, and processing preferences</p>
       </div>
 
       <div className="space-y-8">
@@ -102,6 +253,113 @@ export default function Settings() {
         <section className="bg-slate-800/50 rounded-xl border border-white/10 p-5">
           <h2 className="text-sm font-bold text-white mb-4">Competition Tier</h2>
           <CompetitionTierSelector value={tier} onChange={setTier} />
+        </section>
+
+        {/* Save Club & Team */}
+        {saveError && (
+          <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+            <p className="text-sm text-red-400">{saveError}</p>
+          </div>
+        )}
+        <button
+          onClick={handleSave}
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-semibold text-white transition-colors"
+        >
+          {saved ? (clubId ? 'Settings Saved!' : 'Club & Team Created!') : (clubId ? 'Save Settings' : 'Save & Create Team')}
+        </button>
+
+        {/* Player Roster */}
+        <section className="bg-slate-800/50 rounded-xl border border-white/10 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-bold text-white">Player Roster</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {teamId
+                  ? `${players.length} player${players.length !== 1 ? 's' : ''} on roster`
+                  : 'Save your club & team above first'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addPlayer}
+              disabled={!teamId}
+              className="text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-lg text-white transition-colors"
+            >
+              + Add Player
+            </button>
+          </div>
+
+          {players.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-slate-500 text-sm mb-1">No players on the roster yet.</p>
+              <p className="text-slate-600 text-xs">Click "+ Add Player" above to start building your roster.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+              <div className="flex gap-2 items-center px-3 py-1 text-xs text-slate-500">
+                <span className="w-14 text-center">#</span>
+                <span className="flex-1">Name</span>
+                <span className="w-20 text-center">Position</span>
+                <span className="w-6" />
+              </div>
+              {players.map((entry, idx) => (
+                <div
+                  key={entry.id ?? `new-${idx}`}
+                  className="flex gap-2 items-center px-3 py-2 rounded-lg border bg-slate-800/60 border-slate-600"
+                >
+                  <input
+                    type="number"
+                    value={entry.jersey_number}
+                    onChange={(e) => updatePlayer(idx, 'jersey_number', parseInt(e.target.value) || 0)}
+                    className="w-14 bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-white text-center text-sm"
+                    placeholder="#"
+                    min={0}
+                  />
+                  <input
+                    type="text"
+                    value={entry.name}
+                    onChange={(e) => updatePlayer(idx, 'name', e.target.value)}
+                    className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-1 text-white text-sm placeholder-slate-500"
+                    placeholder="Player name"
+                  />
+                  <select
+                    value={entry.position}
+                    onChange={(e) => updatePlayer(idx, 'position', e.target.value)}
+                    className="w-20 bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 text-white text-sm"
+                  >
+                    <option value="">Pos</option>
+                    {POSITIONS.map((pos) => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removePlayer(idx)}
+                    className="text-slate-500 hover:text-red-400 text-sm px-1"
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {playerError && (
+            <div className="mt-3 p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+              <p className="text-sm text-red-400">{playerError}</p>
+            </div>
+          )}
+
+          {players.length > 0 && (
+            <button
+              type="button"
+              onClick={saveRoster}
+              disabled={playerSaving || !teamId}
+              className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl font-semibold text-white text-sm transition-colors"
+            >
+              {playerSaving ? 'Saving...' : playerSaved ? 'Roster Saved!' : 'Save Roster'}
+            </button>
+          )}
         </section>
 
         {/* PIQ Rating Preferences */}
@@ -178,19 +436,6 @@ export default function Settings() {
             </button>
           </div>
         </section>
-
-        {/* Save */}
-        {saveError && (
-          <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
-            <p className="text-sm text-red-400">{saveError}</p>
-          </div>
-        )}
-        <button
-          onClick={handleSave}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-semibold text-white transition-colors"
-        >
-          {saved ? 'Club & Team Created!' : 'Save & Create Team'}
-        </button>
       </div>
     </div>
   );
