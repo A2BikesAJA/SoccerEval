@@ -39,6 +39,7 @@ class GameCreate(BaseModel):
     game_date: date
     age_group: Optional[str] = None
     formation: Optional[str] = None
+    match_format: Optional[str] = None
     camera_source_type: str = "other"
     roster: list[RosterEntry] = []
 
@@ -51,6 +52,7 @@ class GameResponse(BaseModel):
     age_group: Optional[str] = None
     formation: Optional[str] = None
     status: str
+    match_format: Optional[str] = None
     duration_minutes: Optional[float] = None
     score_home: Optional[int] = None
     score_away: Optional[int] = None

@@ -42,6 +42,7 @@ class Game(Base):
     score_home = Column(Integer, nullable=True)
     score_away = Column(Integer, nullable=True)
     duration_minutes = Column(Float, nullable=True)
+    match_format = Column(String(10), nullable=True)  # e.g. "5v5", "7v7", "9v9", "11v11"
 
     team = relationship("Team", back_populates="games")
     video_sources = relationship("GameVideoSource", back_populates="game", cascade="all, delete-orphan")

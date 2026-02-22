@@ -1,10 +1,20 @@
-import { useState, useRef, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { cn } from '../lib/utils';
+import { playersApi } from '../lib/api';
+
+interface PlayerFromAPI {
+  id: number;
+  jersey_number: number | null;
+  name: string;
+  position: string | null;
+}
 
 interface RosterEntry {
+  player_id: number | null;
   jersey_number: number;
   name: string;
   position: string;
+  selected: boolean;
 }
 
 interface UploadFormProps {
@@ -22,15 +32,11 @@ const CAMERA_SOURCES = [
   { value: 'other', label: 'Other', tip: 'Unknown camera type.' },
 ];
 
-const COMPETITION_TIERS = [
-  { value: 1, label: 'Tier 1 — Elite (MLS NEXT / ECNL)' },
-  { value: 2, label: 'Tier 2 — National (GA / MLS NEXT non-MLS)' },
-  { value: 3, label: 'Tier 3 — High National (ECRL / DPL)' },
-  { value: 4, label: 'Tier 4 — National/Regional (NPL / USYS NL)' },
-  { value: 5, label: 'Tier 5 — State Premier' },
-  { value: 6, label: 'Tier 6 — Competitive Travel' },
-  { value: 7, label: 'Tier 7 — Recreational+' },
-  { value: 8, label: 'Tier 8 — Recreational' },
+const MATCH_FORMATS = [
+  { value: '5v5', label: '5 v 5', players: 5 },
+  { value: '7v7', label: '7 v 7', players: 7 },
+  { value: '9v9', label: '9 v 9', players: 9 },
+  { value: '11v11', label: '11 v 11', players: 11 },
 ];
 
 const AGE_GROUPS = ['U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19'];
@@ -39,6 +45,8 @@ const FORMATIONS = [
   '4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '3-4-3',
   '4-1-4-1', '4-3-1-2', '5-3-2', '4-5-1', '3-3-4',
 ];
+
+const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
 
 export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -50,13 +58,41 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
   const [gameDate, setGameDate] = useState('');
   const [ageGroup, setAgeGroup] = useState('U12');
   const [formation, setFormation] = useState('4-3-3');
+  const [matchFormat, setMatchFormat] = useState('11v11');
   const [cameraSource, setCameraSource] = useState('veo_followcam');
-  const [roster, setRoster] = useState<RosterEntry[]>([
-    { jersey_number: 1, name: '', position: 'GK' },
-  ]);
+  const [roster, setRoster] = useState<RosterEntry[]>([]);
+  const [loadingRoster, setLoadingRoster] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedCamera = CAMERA_SOURCES.find((c) => c.value === cameraSource);
+  const selectedFormat = MATCH_FORMATS.find((f) => f.value === matchFormat);
+  const selectedCount = roster.filter((r) => r.selected).length;
+  const expectedPlayers = selectedFormat?.players || 11;
+
+  // Auto-load roster when team changes
+  useEffect(() => {
+    if (!teamId) return;
+    setLoadingRoster(true);
+    playersApi.list(teamId)
+      .then((res) => {
+        const players: PlayerFromAPI[] = res.data;
+        if (players.length > 0) {
+          setRoster(
+            players.map((p) => ({
+              player_id: p.id,
+              jersey_number: p.jersey_number ?? 0,
+              name: p.name,
+              position: p.position ?? '',
+              selected: true,
+            }))
+          );
+        } else {
+          setRoster([]);
+        }
+      })
+      .catch(() => setRoster([]))
+      .finally(() => setLoadingRoster(false));
+  }, [teamId]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
@@ -68,16 +104,25 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
     if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0]);
   };
 
-  const addRosterEntry = () => {
-    const nextNum = roster.length > 0 ? Math.max(...roster.map((r) => r.jersey_number)) + 1 : 1;
-    setRoster([...roster, { jersey_number: nextNum, name: '', position: '' }]);
+  const togglePlayer = (idx: number) => {
+    const updated = [...roster];
+    updated[idx].selected = !updated[idx].selected;
+    setRoster(updated);
   };
 
-  const removeRosterEntry = (idx: number) => {
+  const selectAll = () => setRoster(roster.map((r) => ({ ...r, selected: true })));
+  const selectNone = () => setRoster(roster.map((r) => ({ ...r, selected: false })));
+
+  const addManualEntry = () => {
+    const nextNum = roster.length > 0 ? Math.max(...roster.map((r) => r.jersey_number)) + 1 : 1;
+    setRoster([...roster, { player_id: null, jersey_number: nextNum, name: '', position: '', selected: true }]);
+  };
+
+  const removeEntry = (idx: number) => {
     setRoster(roster.filter((_, i) => i !== idx));
   };
 
-  const updateRoster = (idx: number, field: keyof RosterEntry, value: string | number) => {
+  const updateEntry = (idx: number, field: keyof RosterEntry, value: string | number | boolean) => {
     const updated = [...roster];
     (updated[idx] as any)[field] = value;
     setRoster(updated);
@@ -95,11 +140,18 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
     formData.append('game_date', gameDate);
     formData.append('age_group', ageGroup);
     formData.append('formation', formation);
+    formData.append('match_format', matchFormat);
     formData.append('camera_source_type', cameraSource);
 
-    const validRoster = roster.filter((r) => r.name.trim());
-    if (validRoster.length > 0) {
-      formData.append('roster_json', JSON.stringify(validRoster));
+    const selectedRoster = roster
+      .filter((r) => r.selected && r.name.trim())
+      .map((r) => ({
+        jersey_number: r.jersey_number,
+        name: r.name,
+        position: r.position,
+      }));
+    if (selectedRoster.length > 0) {
+      formData.append('roster_json', JSON.stringify(selectedRoster));
     }
 
     try {
@@ -209,6 +261,26 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
           />
         </div>
         <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Match Format</label>
+          <div className="flex gap-2">
+            {MATCH_FORMATS.map((fmt) => (
+              <button
+                key={fmt.value}
+                type="button"
+                onClick={() => setMatchFormat(fmt.value)}
+                className={cn(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition-colors border',
+                  matchFormat === fmt.value
+                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                    : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500',
+                )}
+              >
+                {fmt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">Age Group</label>
           <select
             value={ageGroup}
@@ -237,59 +309,98 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
       {/* Roster */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-slate-300">Roster</label>
-          <button
-            type="button"
-            onClick={addRosterEntry}
-            className="text-xs text-emerald-400 hover:text-emerald-300"
-          >
-            + Add Player
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-slate-300">Game Day Roster</label>
+            <span className={cn(
+              'text-xs px-2 py-0.5 rounded-full',
+              selectedCount === expectedPlayers
+                ? 'bg-emerald-900/30 text-emerald-400'
+                : selectedCount > expectedPlayers
+                  ? 'bg-amber-900/30 text-amber-400'
+                  : 'bg-slate-700 text-slate-400',
+            )}>
+              {selectedCount} / {expectedPlayers} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={selectAll} className="text-xs text-slate-400 hover:text-slate-300">
+              Select all
+            </button>
+            <button type="button" onClick={selectNone} className="text-xs text-slate-400 hover:text-slate-300">
+              Clear
+            </button>
+            <button type="button" onClick={addManualEntry} className="text-xs text-emerald-400 hover:text-emerald-300">
+              + Add Player
+            </button>
+          </div>
         </div>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {roster.map((entry, idx) => (
-            <div key={idx} className="flex gap-2 items-center">
-              <input
-                type="number"
-                value={entry.jersey_number}
-                onChange={(e) => updateRoster(idx, 'jersey_number', parseInt(e.target.value) || 0)}
-                className="w-16 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-center text-sm"
-                placeholder="#"
-              />
-              <input
-                type="text"
-                value={entry.name}
-                onChange={(e) => updateRoster(idx, 'name', e.target.value)}
-                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500"
-                placeholder="Player name"
-              />
-              <select
-                value={entry.position}
-                onChange={(e) => updateRoster(idx, 'position', e.target.value)}
-                className="w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm"
+
+        {loadingRoster ? (
+          <div className="text-center py-6 text-slate-500 text-sm">Loading team roster...</div>
+        ) : roster.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-slate-500 text-sm mb-2">No players on this team yet.</p>
+            <p className="text-slate-600 text-xs">Add players in Settings, or use "+ Add Player" above for a one-off entry.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+            {roster.map((entry, idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  'flex gap-2 items-center px-3 py-2 rounded-lg border transition-colors',
+                  entry.selected
+                    ? 'bg-slate-800/60 border-slate-600'
+                    : 'bg-slate-900/40 border-slate-700/50 opacity-50',
+                )}
               >
-                <option value="">Pos</option>
-                <option value="GK">GK</option>
-                <option value="CB">CB</option>
-                <option value="LB">LB</option>
-                <option value="RB">RB</option>
-                <option value="CDM">CDM</option>
-                <option value="CM">CM</option>
-                <option value="CAM">CAM</option>
-                <option value="LW">LW</option>
-                <option value="RW">RW</option>
-                <option value="ST">ST</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => removeRosterEntry(idx)}
-                className="text-slate-500 hover:text-red-400 text-sm px-1"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
+                <input
+                  type="checkbox"
+                  checked={entry.selected}
+                  onChange={() => togglePlayer(idx)}
+                  className="w-4 h-4 rounded border-slate-500 text-emerald-500 focus:ring-emerald-500 bg-slate-700"
+                />
+                <input
+                  type="number"
+                  value={entry.jersey_number}
+                  onChange={(e) => updateEntry(idx, 'jersey_number', parseInt(e.target.value) || 0)}
+                  className="w-14 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-center text-sm"
+                  placeholder="#"
+                />
+                {entry.player_id ? (
+                  <span className="flex-1 text-sm text-white truncate">{entry.name}</span>
+                ) : (
+                  <input
+                    type="text"
+                    value={entry.name}
+                    onChange={(e) => updateEntry(idx, 'name', e.target.value)}
+                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-1 text-white text-sm placeholder-slate-500"
+                    placeholder="Player name"
+                  />
+                )}
+                <select
+                  value={entry.position}
+                  onChange={(e) => updateEntry(idx, 'position', e.target.value)}
+                  className="w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-sm"
+                >
+                  <option value="">Pos</option>
+                  {POSITIONS.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+                {!entry.player_id && (
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(idx)}
+                    className="text-slate-500 hover:text-red-400 text-sm px-1"
+                  >
+                    x
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Submit */}

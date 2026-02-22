@@ -69,6 +69,7 @@ async def upload_game(
     age_group: str = Form(None),
     formation: str = Form(None),
     camera_source_type: str = Form("other"),
+    match_format: str = Form(None),
     roster_json: str = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -129,6 +130,7 @@ async def upload_game(
             game_date=date_type.fromisoformat(game_date),
             age_group=age_group,
             formation=formation,
+            match_format=match_format,
             video_path=str(upload_path),
             status=GameStatus.PENDING,
         )
