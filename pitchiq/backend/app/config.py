@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     transcode_fps: int = 30
 
     # CV Pipeline
-    yolo_model_path: str = "yolov8x.pt"
+    yolo_model_path: str = "models/yolov8x.pt"
     ocr_confidence_high: float = 0.85
     ocr_confidence_medium: float = 0.50
     reid_similarity_threshold: float = 0.80
