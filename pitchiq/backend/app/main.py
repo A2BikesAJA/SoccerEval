@@ -14,7 +14,9 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.config import settings
-from app.models.base import Base, engine, SessionLocal
+from app.models.base import engine, SessionLocal
+import app.models  # noqa: F401 — register every model with Base before create_all()
+from app.models import Base
 from app.routers import clubs, teams, players, games, stats, piq, processing
 
 logging.basicConfig(level=logging.INFO)
