@@ -1,82 +1,87 @@
-// ── Enums ──────────────────────────────────────────────────────────────────
+// ── Enums (as const objects for erasableSyntaxOnly compatibility) ──────────
 
-export enum GameStatus {
-  PENDING = 'pending',
-  UPLOADING = 'uploading',
-  TRANSCODING = 'transcoding',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  ERROR = 'error',
-}
+export const GameStatus = {
+  PENDING: 'pending',
+  UPLOADING: 'uploading',
+  TRANSCODING: 'transcoding',
+  PROCESSING: 'processing',
+  COMPLETED: 'completed',
+  ERROR: 'error',
+} as const;
+export type GameStatus = (typeof GameStatus)[keyof typeof GameStatus];
 
-export enum CameraSourceType {
-  VEO_FOLLOWCAM = 'veo_followcam',
-  VEO_PANORAMIC = 'veo_panoramic',
-  TRACE = 'trace',
-  PIXELLOT = 'pixellot',
-  SIDELINE = 'sideline',
-  STATIC_ELEVATED = 'static_elevated',
-  OTHER = 'other',
-}
+export const CameraSourceType = {
+  VEO_FOLLOWCAM: 'veo_followcam',
+  VEO_PANORAMIC: 'veo_panoramic',
+  TRACE: 'trace',
+  PIXELLOT: 'pixellot',
+  SIDELINE: 'sideline',
+  STATIC_ELEVATED: 'static_elevated',
+  OTHER: 'other',
+} as const;
+export type CameraSourceType = (typeof CameraSourceType)[keyof typeof CameraSourceType];
 
-export enum PlayerPosition {
+export const PlayerPosition = {
   // Goalkeeper
-  GK = 'GK',
+  GK: 'GK',
   // Center Back
-  CB = 'CB',
-  SW = 'SW',
+  CB: 'CB',
+  SW: 'SW',
   // Fullback / Wingback
-  LB = 'LB',
-  RB = 'RB',
-  LWB = 'LWB',
-  RWB = 'RWB',
+  LB: 'LB',
+  RB: 'RB',
+  LWB: 'LWB',
+  RWB: 'RWB',
   // Defensive Midfielder
-  CDM = 'CDM',
-  DM = 'DM',
+  CDM: 'CDM',
+  DM: 'DM',
   // Central Midfielder
-  CM = 'CM',
-  LCM = 'LCM',
-  RCM = 'RCM',
+  CM: 'CM',
+  LCM: 'LCM',
+  RCM: 'RCM',
   // Attacking Midfielder
-  CAM = 'CAM',
-  AM = 'AM',
+  CAM: 'CAM',
+  AM: 'AM',
   // Winger
-  LW = 'LW',
-  RW = 'RW',
-  LM = 'LM',
-  RM = 'RM',
+  LW: 'LW',
+  RW: 'RW',
+  LM: 'LM',
+  RM: 'RM',
   // Striker / Forward
-  ST = 'ST',
-  CF = 'CF',
-  LF = 'LF',
-  RF = 'RF',
-}
+  ST: 'ST',
+  CF: 'CF',
+  LF: 'LF',
+  RF: 'RF',
+} as const;
+export type PlayerPosition = (typeof PlayerPosition)[keyof typeof PlayerPosition];
 
-export enum AgeGroup {
-  U8 = 'U8',
-  U9 = 'U9',
-  U10 = 'U10',
-  U11 = 'U11',
-  U12 = 'U12',
-  U13 = 'U13',
-  U14 = 'U14',
-  U15 = 'U15',
-  U16 = 'U16',
-  U17 = 'U17',
-  U18 = 'U18',
-  U19 = 'U19',
-}
+export const AgeGroup = {
+  U8: 'U8',
+  U9: 'U9',
+  U10: 'U10',
+  U11: 'U11',
+  U12: 'U12',
+  U13: 'U13',
+  U14: 'U14',
+  U15: 'U15',
+  U16: 'U16',
+  U17: 'U17',
+  U18: 'U18',
+  U19: 'U19',
+} as const;
+export type AgeGroup = (typeof AgeGroup)[keyof typeof AgeGroup];
 
-export enum CompetitionTier {
-  TIER_1 = 1, // MLS NEXT / ECNL
-  TIER_2 = 2, // MLS NEXT (non-MLS) / GA
-  TIER_3 = 3, // ECRL / GA Aspire / DPL
-  TIER_4 = 4, // NPL / USYS NL
-  TIER_5 = 5, // State Premier
-  TIER_6 = 6, // Competitive Travel
-  TIER_7 = 7, // Recreational+
-  TIER_8 = 8, // Recreational
-}
+export const CompetitionTier = {
+  TIER_1: 1, // MLS NEXT / ECNL
+  TIER_2: 2, // MLS NEXT (non-MLS) / GA
+  TIER_3: 3, // ECRL / GA Aspire / DPL
+  TIER_4: 4, // NPL / USYS NL
+  TIER_5: 5, // State Premier
+  TIER_6: 6, // Competitive Travel
+  TIER_7: 7, // Recreational+
+  TIER_8: 8, // Recreational
+} as const;
+export type CompetitionTier = (typeof CompetitionTier)[keyof typeof CompetitionTier];
 
 export const CompetitionTierLabels: Record<CompetitionTier, string> = {
   [CompetitionTier.TIER_1]: 'MLS NEXT / ECNL',
@@ -89,19 +94,21 @@ export const CompetitionTierLabels: Record<CompetitionTier, string> = {
   [CompetitionTier.TIER_8]: 'Recreational',
 };
 
-export enum PIQConfidenceLevel {
-  CALCULATING = 'calculating',   // < 3 games
-  PRELIMINARY = 'preliminary',   // 3-5 games
-  DEVELOPING = 'developing',     // 6-10 games
-  ESTABLISHED = 'established',   // 11+ games
-}
+export const PIQConfidenceLevel = {
+  CALCULATING: 'calculating',   // < 3 games
+  PRELIMINARY: 'preliminary',   // 3-5 games
+  DEVELOPING: 'developing',     // 6-10 games
+  ESTABLISHED: 'established',   // 11+ games
+} as const;
+export type PIQConfidenceLevel = (typeof PIQConfidenceLevel)[keyof typeof PIQConfidenceLevel];
 
-export enum ProcessingJobStatus {
-  QUEUED = 'queued',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-}
+export const ProcessingJobStatus = {
+  QUEUED: 'queued',
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+} as const;
+export type ProcessingJobStatus = (typeof ProcessingJobStatus)[keyof typeof ProcessingJobStatus];
 
 // ── Core Data Models ───────────────────────────────────────────────────────
 

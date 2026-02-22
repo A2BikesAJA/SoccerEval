@@ -20,7 +20,7 @@ interface ScoutingPlayer {
   def: number;
   phy: number;
   games: number;
-  confidence: 'developing' | 'established' | 'new';
+  confidence: 'calculating' | 'preliminary' | 'developing' | 'established';
 }
 
 export default function ScoutingView() {

@@ -81,8 +81,8 @@ export default function Settings() {
             );
           }
         }
-      } catch {
-        // Backend not running or no data yet
+      } catch (err) {
+        console.error('Settings load error:', err);
       } finally {
         setLoading(false);
       }
@@ -131,8 +131,9 @@ export default function Settings() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
+      console.error('Settings save error:', err);
       const detail = err.response?.data?.detail;
-      setSaveError(detail || err.message || 'Save failed. Make sure the backend is running.');
+      setSaveError(typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message || 'Save failed. Make sure the backend is running.'));
     }
   };
 
@@ -187,8 +188,9 @@ export default function Settings() {
       setPlayerSaved(true);
       setTimeout(() => setPlayerSaved(false), 3000);
     } catch (err: any) {
+      console.error('Roster save error:', err);
       const detail = err.response?.data?.detail;
-      setPlayerError(detail || err.message || 'Failed to save roster.');
+      setPlayerError(typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message || 'Failed to save roster.'));
     } finally {
       setPlayerSaving(false);
     }

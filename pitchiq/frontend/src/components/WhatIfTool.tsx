@@ -31,7 +31,7 @@ export default function WhatIfTool({
   playerName,
   currentTier,
   currentOvr,
-  currentAttributes,
+  currentAttributes: _currentAttributes,
   onSimulate,
 }: WhatIfToolProps) {
   const [targetTier, setTargetTier] = useState(Math.max(1, currentTier - 1));
