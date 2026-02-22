@@ -73,116 +73,135 @@ async def upload_game(
     db: Session = Depends(get_db),
 ):
     """Upload a game video with metadata."""
-    # Validate team exists
-    team = db.query(Team).filter(Team.id == team_id).first()
-    if not team:
-        raise HTTPException(status_code=400, detail=f"Team with id {team_id} not found")
-
-    # Validate file extension
-    ext = Path(video.filename).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-        )
-
-    # Resolve camera source enum (fall back to OTHER)
+    upload_path: Path | None = None
     try:
-        cam_enum = CameraSourceType(camera_source_type)
-    except ValueError:
-        cam_enum = CameraSourceType.OTHER
+        # Validate team exists
+        team = db.query(Team).filter(Team.id == team_id).first()
+        if not team:
+            raise HTTPException(status_code=400, detail=f"Team with id {team_id} not found")
 
-    # Generate unique filename and stream to disk in 1 MB chunks
-    file_id = uuid.uuid4().hex
-    filename = f"{file_id}{ext}"
-    upload_path = Path(settings.upload_dir) / filename
-
-    CHUNK_SIZE = 1024 * 1024  # 1 MB
-    bytes_written = 0
-    with open(upload_path, "wb") as f:
-        while chunk := await video.read(CHUNK_SIZE):
-            bytes_written += len(chunk)
-            if bytes_written > MAX_SIZE_BYTES:
-                f.close()
-                upload_path.unlink(missing_ok=True)
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File too large. Maximum size is {settings.max_upload_size_mb} MB.",
-                )
-            f.write(chunk)
-
-    # Create game record
-    game = Game(
-        team_id=team_id,
-        opponent_name=opponent_name,
-        game_date=date_type.fromisoformat(game_date),
-        age_group=age_group,
-        formation=formation,
-        video_path=str(upload_path),
-        status=GameStatus.PENDING,
-    )
-    db.add(game)
-    db.flush()
-
-    # Create video source record
-    source = GameVideoSource(
-        game_id=game.id,
-        source_type=cam_enum,
-        video_path=str(upload_path),
-        is_primary=True,
-    )
-    db.add(source)
-
-    # Process roster if provided
-    if roster_json:
-        roster = json.loads(roster_json)
-        for entry in roster:
-            jersey_num = entry.get("jersey_number")
-            name = entry.get("name", "Unknown")
-            position = entry.get("position")
-
-            # Find or create player
-            player = db.query(Player).filter(
-                Player.team_id == team_id,
-                Player.jersey_number == jersey_num,
-            ).first()
-            if not player:
-                player = Player(
-                    team_id=team_id,
-                    name=name,
-                    jersey_number=jersey_num,
-                    position=position,
-                )
-                db.add(player)
-                db.flush()
-
-            # Create game player entry
-            game_player = GamePlayer(
-                game_id=game.id,
-                player_id=player.id,
-                position_played=position,
-                started=True,
+        # Validate file extension
+        ext = Path(video.filename).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
             )
-            db.add(game_player)
 
-    # Create processing job
-    job = ProcessingJob(game_id=game.id, status="queued")
-    db.add(job)
+        # Resolve camera source enum (fall back to OTHER)
+        try:
+            cam_enum = CameraSourceType(camera_source_type)
+        except ValueError:
+            cam_enum = CameraSourceType.OTHER
 
-    db.commit()
-    db.refresh(game)
+        # Ensure upload directory exists
+        upload_dir = Path(settings.upload_dir)
+        upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Trigger Celery task for video processing.
-    # Wrapped in try-except so the upload response succeeds even if the
-    # broker (Redis) is temporarily unreachable — the game is already
-    # persisted and can be retried via the /processing/game/{id}/retry endpoint.
-    try:
-        from app.worker import process_game_video
-        process_game_video.delay(game.id)
+        # Generate unique filename and stream to disk in 1 MB chunks
+        file_id = uuid.uuid4().hex
+        filename = f"{file_id}{ext}"
+        upload_path = upload_dir / filename
+
+        logger.info("Upload started: file=%s dest=%s team_id=%d",
+                     video.filename, upload_path, team_id)
+
+        CHUNK_SIZE = 1024 * 1024  # 1 MB
+        bytes_written = 0
+        with open(upload_path, "wb") as f:
+            while chunk := await video.read(CHUNK_SIZE):
+                bytes_written += len(chunk)
+                if bytes_written > MAX_SIZE_BYTES:
+                    f.close()
+                    upload_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Maximum size is {settings.max_upload_size_mb} MB.",
+                    )
+                f.write(chunk)
+
+        logger.info("File written: %s (%d bytes)", upload_path, bytes_written)
+
+        # Create game record
+        game = Game(
+            team_id=team_id,
+            opponent_name=opponent_name,
+            game_date=date_type.fromisoformat(game_date),
+            age_group=age_group,
+            formation=formation,
+            video_path=str(upload_path),
+            status=GameStatus.PENDING,
+        )
+        db.add(game)
+        db.flush()
+
+        # Create video source record
+        source = GameVideoSource(
+            game_id=game.id,
+            source_type=cam_enum,
+            video_path=str(upload_path),
+            is_primary=True,
+        )
+        db.add(source)
+
+        # Process roster if provided
+        if roster_json:
+            roster = json.loads(roster_json)
+            for entry in roster:
+                jersey_num = entry.get("jersey_number")
+                name = entry.get("name", "Unknown")
+                position = entry.get("position")
+
+                # Find or create player
+                player = db.query(Player).filter(
+                    Player.team_id == team_id,
+                    Player.jersey_number == jersey_num,
+                ).first()
+                if not player:
+                    player = Player(
+                        team_id=team_id,
+                        name=name,
+                        jersey_number=jersey_num,
+                        position=position,
+                    )
+                    db.add(player)
+                    db.flush()
+
+                # Create game player entry
+                game_player = GamePlayer(
+                    game_id=game.id,
+                    player_id=player.id,
+                    position_played=position,
+                    started=True,
+                )
+                db.add(game_player)
+
+        # Create processing job
+        job = ProcessingJob(game_id=game.id, status="queued")
+        db.add(job)
+
+        db.commit()
+        db.refresh(game)
+        logger.info("Game %d created successfully (file: %s)", game.id, upload_path)
+
+        # Trigger Celery task for video processing.
+        try:
+            from app.worker import process_game_video
+            process_game_video.delay(game.id)
+            logger.info("Game %d: processing task enqueued", game.id)
+        except Exception as exc:
+            logger.warning("Game %d: failed to enqueue processing task: %s", game.id, exc)
+
+        return game
+
+    except HTTPException:
+        raise
     except Exception as exc:
-        logger.warning("Game %d: failed to enqueue processing task: %s", game.id, exc)
-
-    return game
+        logger.exception("Upload failed for file %s", video.filename)
+        # Clean up partial file on unexpected error
+        if upload_path and upload_path.exists():
+            upload_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {exc}")
 
 
 @router.post("/{game_id}/secondary-video", status_code=201)

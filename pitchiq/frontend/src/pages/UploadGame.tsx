@@ -22,9 +22,11 @@ export default function UploadGame() {
       const res = await gamesApi.upload(formData, onProgress);
       navigate(`/game/${res.data.id}`);
     } catch (err: any) {
-      const detail = err.response?.data?.detail || 'Upload failed';
-      setError(detail);
-      throw err;
+      const detail = err.response?.data?.detail
+        || err.message
+        || 'Upload failed — check browser console for details';
+      setError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      console.error('Upload error:', err);
     }
   };
 
