@@ -45,6 +45,7 @@ class Team(Base):
     season = Column(String(20), nullable=True)
     competition_tier = Column(Integer, default=6)
     league_name = Column(String(255), nullable=True)
+    default_formation = Column(String(20), nullable=True)
 
     club = relationship("Club", back_populates="teams")
     players = relationship("Player", back_populates="team", cascade="all, delete-orphan")

@@ -11,6 +11,11 @@ interface PlayerEntry {
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
 
+const FORMATIONS = [
+  '4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '3-4-3',
+  '4-1-4-1', '4-3-1-2', '5-3-2', '4-5-1', '3-3-4',
+];
+
 export default function Settings() {
   // Existing entity IDs (null = not yet created)
   const [clubId, setClubId] = useState<number | null>(null);
@@ -25,6 +30,7 @@ export default function Settings() {
   const [defaultCamera, setDefaultCamera] = useState('veo_followcam');
   const [piqMinGames, setPiqMinGames] = useState(3);
   const [detectionFps, setDetectionFps] = useState(2.0);
+  const [defaultFormation, setDefaultFormation] = useState('');
 
   // Save state
   const [saved, setSaved] = useState(false);
@@ -61,6 +67,7 @@ export default function Settings() {
             setAgeGroup(team.age_group || 'U12');
             setTier(team.competition_tier ?? 6);
             setLeagueName(team.league_name || '');
+            setDefaultFormation(team.default_formation || '');
 
             // Load players for this team
             const playersRes = await playersApi.list(team.id);
@@ -106,6 +113,7 @@ export default function Settings() {
           age_group: ageGroup,
           competition_tier: tier,
           league_name: leagueName || null,
+          default_formation: defaultFormation || null,
         });
         currentTeamId = teamRes.data.id;
         setTeamId(currentTeamId);
@@ -116,6 +124,7 @@ export default function Settings() {
           age_group: ageGroup,
           competition_tier: tier,
           league_name: leagueName || null,
+          default_formation: defaultFormation || null,
         });
       }
 
@@ -253,6 +262,30 @@ export default function Settings() {
         <section className="bg-slate-800/50 rounded-xl border border-white/10 p-5">
           <h2 className="text-sm font-bold text-white mb-4">Competition Tier</h2>
           <CompetitionTierSelector value={tier} onChange={setTier} />
+        </section>
+
+        {/* Default Formation */}
+        <section className="bg-slate-800/50 rounded-xl border border-white/10 p-5">
+          <h2 className="text-sm font-bold text-white mb-4">Default Formation</h2>
+          <div className="grid grid-cols-5 gap-2">
+            {FORMATIONS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setDefaultFormation(f === defaultFormation ? '' : f)}
+                className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                  defaultFormation === f
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-3">
+            This will be pre-selected when uploading new games. You can still change it per game.
+          </p>
         </section>
 
         {/* Save Club & Team */}
