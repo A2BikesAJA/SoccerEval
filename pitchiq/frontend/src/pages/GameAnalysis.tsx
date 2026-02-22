@@ -4,16 +4,18 @@ import { gamesApi, statsApi } from '../lib/api';
 import { cn } from '../lib/utils';
 import StatsTable from '../components/StatsTable';
 import TeamComparison from '../components/TeamComparison';
-import HeatMap from '../components/HeatMap';
-import ProcessingStatus from '../components/ProcessingStatus';
+
+// Pretty-print metric_name as a label (e.g. "pass_completion_rate" → "Pass Completion Rate")
+function metricLabel(name: string): string {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function GameAnalysis() {
   const { gameId } = useParams();
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'players' | 'heatmap'>('overview');
   const [game, setGame] = useState<any>(null);
-  const [teamStats, setTeamStats] = useState<any[]>([]);
-  const [players, setPlayers] = useState<any[]>([]);
+  const [rawTeamStats, setRawTeamStats] = useState<any[]>([]);
+  const [rawPlayers, setRawPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,12 +28,30 @@ export default function GameAnalysis() {
     ])
       .then(([g, ts, ps]) => {
         setGame(g);
-        setTeamStats(ts);
-        setPlayers(ps);
+        setRawTeamStats(ts);
+        setRawPlayers(ps);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [gameId]);
+
+  // Transform backend snake_case player data → StatsTable camelCase format
+  const players = rawPlayers.map((p: any) => ({
+    playerId: p.player_id,
+    playerName: p.player_name,
+    jerseyNumber: p.jersey_number,
+    positionPlayed: p.position_played || '',
+    screenTimeRatio: p.screen_time_ratio ?? 0,
+    score: p.score?.overall_score ?? undefined,
+    stats: p.stats || {},
+  }));
+
+  // Transform backend {metric_name, metric_value} → TeamComparison {label, home, away}
+  const teamStats = rawTeamStats.map((s: any) => ({
+    label: metricLabel(s.metric_name),
+    home: s.metric_value ?? 0,
+    away: 0,
+  }));
 
   if (loading) {
     return <div className="text-center py-16 text-slate-500">Loading game data...</div>;
@@ -164,7 +184,6 @@ export default function GameAnalysis() {
               </div>
               <StatsTable
                 players={players}
-                onPlayerClick={(id) => setSelectedPlayer(id)}
               />
             </>
           ) : (

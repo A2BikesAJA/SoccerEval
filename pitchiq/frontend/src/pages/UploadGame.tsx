@@ -6,7 +6,7 @@ import UploadForm from '../components/UploadForm';
 export default function UploadGame() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [teams, setTeams] = useState<{ id: number; name: string }[]>([]);
+  const [teams, setTeams] = useState<{ id: number; name: string; default_formation?: string | null }[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Stats and scores schemas."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date, datetime
 from typing import Optional, Any
 
@@ -87,7 +87,7 @@ class PIQRatingResponse(BaseModel):
     sht: int
     pas: int
     drb: int
-    def_: int
+    def_: int = Field(validation_alias="_def", serialization_alias="def")
     phy: int
     sub_attributes: Optional[dict[str, Any]] = None
     competition_tier: Optional[int] = None
@@ -95,7 +95,7 @@ class PIQRatingResponse(BaseModel):
     games_analyzed_count: int
     confidence_level: str
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class PIQRatingHistoryResponse(BaseModel):

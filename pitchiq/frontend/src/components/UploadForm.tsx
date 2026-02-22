@@ -18,7 +18,7 @@ interface RosterEntry {
 }
 
 interface UploadFormProps {
-  teams: { id: number; name: string }[];
+  teams: { id: number; name: string; default_formation?: string | null }[];
   onSubmit: (formData: FormData, onProgress: (pct: number) => void) => Promise<void>;
 }
 
@@ -69,9 +69,13 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
   const selectedCount = roster.filter((r) => r.selected).length;
   const expectedPlayers = selectedFormat?.players || 11;
 
-  // Auto-load roster when team changes
+  // Auto-load roster and default formation when team changes
   useEffect(() => {
     if (!teamId) return;
+    const team = teams.find((t) => t.id === teamId);
+    if (team?.default_formation) {
+      setFormation(team.default_formation);
+    }
     setLoadingRoster(true);
     playersApi.list(teamId)
       .then((res) => {

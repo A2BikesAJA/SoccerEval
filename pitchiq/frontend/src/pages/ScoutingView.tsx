@@ -36,7 +36,27 @@ export default function ScoutingView() {
 
   useEffect(() => {
     piqApi.scouting({})
-      .then((res) => setPlayers(Array.isArray(res.data) ? res.data : []))
+      .then((res) => {
+        const raw = Array.isArray(res.data) ? res.data : [];
+        setPlayers(raw.map((p: any) => ({
+          id: p.player_id,
+          name: p.player_name ?? 'Unknown',
+          position: p.position ?? '',
+          ageGroup: p.age_group ?? '',
+          team: p.team_name ?? '',
+          tier: `Tier ${p.competition_tier ?? 6}`,
+          tierNum: p.competition_tier ?? 6,
+          ovr: p.ovr ?? 0,
+          spd: p.spd ?? 0,
+          sht: p.sht ?? 0,
+          pas: p.pas ?? 0,
+          drb: p.drb ?? 0,
+          def: p.def ?? 0,
+          phy: p.phy ?? 0,
+          games: p.games_analyzed ?? 0,
+          confidence: p.confidence_level ?? 'developing',
+        })));
+      })
       .catch(() => setPlayers([]))
       .finally(() => setLoading(false));
   }, []);

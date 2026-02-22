@@ -4,9 +4,7 @@ import { playersApi, piqApi } from '../lib/api';
 import { cn } from '../lib/utils';
 import PIQCard from '../components/PIQCard';
 import PIQRadarChart from '../components/PIQRadarChart';
-import PlayerScoreCard from '../components/PlayerScoreCard';
 import DevelopmentTimeline from '../components/DevelopmentTimeline';
-import WhatIfTool from '../components/WhatIfTool';
 
 function SubAttributeBar({ name, value }: { name: string; value: number }) {
   const color = value >= 75 ? 'bg-emerald-400' : value >= 60 ? 'bg-blue-400' : value >= 45 ? 'bg-yellow-400' : 'bg-slate-500';
@@ -99,7 +97,7 @@ export default function PlayerReport() {
               def={piq.def || 0}
               phy={piq.phy || 0}
               confidenceLevel={piq.confidence_level || 'developing'}
-              gamesAnalyzed={piq.games_analyzed || 0}
+              gamesAnalyzed={piq.games_analyzed_count || 0}
             />
 
             <div className="bg-slate-800/50 rounded-xl border border-white/10 p-4">

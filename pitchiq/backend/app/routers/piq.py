@@ -99,7 +99,7 @@ def scouting_search(
             "sht": rating.sht,
             "pas": rating.pas,
             "drb": rating.drb,
-            "def_": rating._def,
+            "def": rating._def,
             "phy": rating.phy,
             "games_analyzed": rating.games_analyzed_count,
             "confidence_level": rating.confidence_level,
@@ -141,8 +141,8 @@ def what_if_tier(
         "current_tier": current_tier,
         "target_tier": target_tier,
         "current_ovr": rating.ovr,
-        "estimated_ovr": simulated["ovr"],
-        "estimated_attributes": simulated["attributes"],
+        "estimated_ovr": simulated["estimated_ovr"],
+        "estimated_attributes": simulated["estimated_attributes"],
         "tier_name": tier_service.get_tier_name(target_tier),
     }
 
@@ -181,7 +181,7 @@ def compare_players(
                 "sht": rating.sht if rating else None,
                 "pas": rating.pas if rating else None,
                 "drb": rating.drb if rating else None,
-                "def_": rating._def if rating else None,
+                "def": rating._def if rating else None,
                 "phy": rating.phy if rating else None,
                 "sub_attributes": rating.sub_attributes if rating else None,
                 "games_analyzed": rating.games_analyzed_count if rating else 0,
