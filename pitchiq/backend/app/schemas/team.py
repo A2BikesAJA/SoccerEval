@@ -15,6 +15,7 @@ class TeamCreate(BaseModel):
     competition_tier: int = Field(ge=1, le=8, default=6)
     league_name: Optional[str] = None
     default_formation: Optional[str] = None
+    default_match_format: Optional[str] = None
 
 
 class TeamResponse(BaseModel):
@@ -26,6 +27,7 @@ class TeamResponse(BaseModel):
     competition_tier: int
     league_name: Optional[str] = None
     default_formation: Optional[str] = None
+    default_match_format: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

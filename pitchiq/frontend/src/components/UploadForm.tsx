@@ -18,7 +18,7 @@ interface RosterEntry {
 }
 
 interface UploadFormProps {
-  teams: { id: number; name: string; default_formation?: string | null }[];
+  teams: { id: number; name: string; default_formation?: string | null; default_match_format?: string | null }[];
   onSubmit: (formData: FormData, onProgress: (pct: number) => void) => Promise<void>;
 }
 
@@ -41,12 +41,22 @@ const MATCH_FORMATS = [
 
 const AGE_GROUPS = ['U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19'];
 
-const FORMATIONS = [
-  '4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '3-4-3',
-  '4-1-4-1', '4-3-1-2', '5-3-2', '4-5-1', '3-3-4',
-];
+const FORMATIONS_BY_FORMAT: Record<string, string[]> = {
+  '5v5': ['1-2-1', '2-2', '2-1-1', '1-1-2', '3-1', '1-3'],
+  '7v7': ['2-3-1', '3-2-1', '3-1-2', '2-1-2-1', '1-2-1-2', '3-3'],
+  '9v9': ['3-3-2', '3-2-3', '2-4-2', '3-2-1-2', '2-3-3', '3-1-3-1'],
+  '11v11': [
+    '4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '3-4-3',
+    '4-1-4-1', '4-3-1-2', '5-3-2', '4-5-1', '3-3-4',
+  ],
+};
 
-const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'];
+const POSITIONS_BY_FORMAT: Record<string, string[]> = {
+  '5v5':  ['GK', 'DEF', 'MID', 'FWD'],
+  '7v7':  ['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'],
+  '9v9':  ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'],
+  '11v11': ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'ST'],
+};
 
 export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -68,11 +78,16 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
   const selectedFormat = MATCH_FORMATS.find((f) => f.value === matchFormat);
   const selectedCount = roster.filter((r) => r.selected).length;
   const expectedPlayers = selectedFormat?.players || 11;
+  const formations = FORMATIONS_BY_FORMAT[matchFormat] || FORMATIONS_BY_FORMAT['11v11'];
+  const positions = POSITIONS_BY_FORMAT[matchFormat] || POSITIONS_BY_FORMAT['11v11'];
 
-  // Auto-load roster and default formation when team changes
+  // Auto-load roster, default formation, and match format when team changes
   useEffect(() => {
     if (!teamId) return;
     const team = teams.find((t) => t.id === teamId);
+    if (team?.default_match_format) {
+      setMatchFormat(team.default_match_format);
+    }
     if (team?.default_formation) {
       setFormation(team.default_formation);
     }
@@ -297,13 +312,14 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Formation</label>
+          <label className="block text-sm font-medium text-slate-300 mb-2">Formation ({matchFormat})</label>
           <select
-            value={formation}
+            value={formations.includes(formation) ? formation : ''}
             onChange={(e) => setFormation(e.target.value)}
             className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white"
           >
-            {FORMATIONS.map((f) => (
+            <option value="">Select formation</option>
+            {formations.map((f) => (
               <option key={f} value={f}>{f}</option>
             ))}
           </select>
@@ -388,7 +404,7 @@ export default function UploadForm({ teams, onSubmit }: UploadFormProps) {
                   className="w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-sm"
                 >
                   <option value="">Pos</option>
-                  {POSITIONS.map((pos) => (
+                  {positions.map((pos) => (
                     <option key={pos} value={pos}>{pos}</option>
                   ))}
                 </select>

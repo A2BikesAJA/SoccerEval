@@ -46,6 +46,7 @@ class Team(Base):
     competition_tier = Column(Integer, default=6)
     league_name = Column(String(255), nullable=True)
     default_formation = Column(String(20), nullable=True)
+    default_match_format = Column(String(10), nullable=True)  # "5v5", "7v7", "9v9", "11v11"
 
     club = relationship("Club", back_populates="teams")
     players = relationship("Player", back_populates="team", cascade="all, delete-orphan")

@@ -159,56 +159,66 @@ def test_import_roster_null_position(client, team_id):
 
 
 def test_full_settings_flow(client):
-    """End-to-end: create club → create team with formation → save roster."""
+    """End-to-end: create club → create team with match format + formation → save roster."""
     # Step 1: Create club
     club_res = client.post("/api/v1/clubs/", json={"name": "Sunrise SC"})
     assert club_res.status_code == 201
     club_id = club_res.json()["id"]
 
-    # Step 2: Create team with formation
+    # Step 2: Create team with 9v9 match format and formation
     team_res = client.post("/api/v1/teams/", json={
         "club_id": club_id,
         "name": "Sunrise SC U12 Boys",
         "age_group": "U12",
         "competition_tier": 6,
         "league_name": "Florida Premier League",
-        "default_formation": "4-3-3",
+        "default_match_format": "9v9",
+        "default_formation": "3-3-2",
     })
     assert team_res.status_code == 201
     team_id = team_res.json()["id"]
-    assert team_res.json()["default_formation"] == "4-3-3"
+    assert team_res.json()["default_match_format"] == "9v9"
+    assert team_res.json()["default_formation"] == "3-3-2"
 
     # Step 3: Verify team loads correctly (Settings page load)
     clubs = client.get("/api/v1/clubs/").json()
     assert len(clubs) == 1
     teams = client.get("/api/v1/teams/", params={"club_id": club_id}).json()
     assert len(teams) == 1
-    assert teams[0]["default_formation"] == "4-3-3"
+    assert teams[0]["default_match_format"] == "9v9"
+    assert teams[0]["default_formation"] == "3-3-2"
 
-    # Step 4: Save roster
+    # Step 4: Save roster (9 players for 9v9)
     roster = [
         {"jersey_number": 1, "name": "Alex Keeper", "position": "GK"},
-        {"jersey_number": 4, "name": "Ben Back", "position": "CB"},
-        {"jersey_number": 8, "name": "Chris Mid", "position": "CM"},
-        {"jersey_number": 9, "name": "Dan Striker", "position": "ST"},
+        {"jersey_number": 2, "name": "Ben Back", "position": "CB"},
+        {"jersey_number": 3, "name": "Charlie Left", "position": "LB"},
+        {"jersey_number": 4, "name": "Dana Right", "position": "RB"},
+        {"jersey_number": 5, "name": "Eve Mid", "position": "CM"},
+        {"jersey_number": 6, "name": "Frank Mid", "position": "CDM"},
+        {"jersey_number": 7, "name": "Grace Mid", "position": "CAM"},
+        {"jersey_number": 9, "name": "Hank Striker", "position": "ST"},
+        {"jersey_number": 11, "name": "Ivy Wing", "position": "LW"},
     ]
     roster_res = client.post(f"/api/v1/players/roster/{team_id}", json=roster)
     assert roster_res.status_code == 200
-    assert len(roster_res.json()) == 4
+    assert len(roster_res.json()) == 9
 
     # Step 5: Verify players load correctly
     players = client.get("/api/v1/players/", params={"team_id": team_id}).json()
-    assert len(players) == 4
+    assert len(players) == 9
 
-    # Step 6: Update settings (change formation)
+    # Step 6: Update settings (switch to 7v7 with different formation)
     update_res = client.put(f"/api/v1/teams/{team_id}", json={
         "club_id": club_id,
         "name": "Sunrise SC U12 Boys",
-        "age_group": "U12",
+        "age_group": "U10",
         "competition_tier": 5,
         "league_name": "State Premier",
-        "default_formation": "4-4-2",
+        "default_match_format": "7v7",
+        "default_formation": "2-3-1",
     })
     assert update_res.status_code == 200
-    assert update_res.json()["default_formation"] == "4-4-2"
+    assert update_res.json()["default_match_format"] == "7v7"
+    assert update_res.json()["default_formation"] == "2-3-1"
     assert update_res.json()["competition_tier"] == 5
